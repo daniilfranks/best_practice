@@ -18,6 +18,10 @@ describe 'Test array method' do
     expect(resault).to match_array(%w[car book phone tv])
   end
 
+  it 'test index element array' do
+    expect(resault[2]).to eq('phone')
+  end
+
   it 'include' do
     expect(resault).to include('car')
     expect(resault).to include('car', 'tv')
@@ -32,11 +36,37 @@ describe 'Test method languages' do
 end
 
 describe 'Test method hello' do
+  it 'defined method?' do
+    expect(defined?(hello)).to be_truthy
+  end
+
+  it 'not raise' do
+    expect{ hello }.to_not raise_error
+  end
+
+  it 'include name' do
+    expect(hello).to include('Den')
+  end
+
   it 'default name' do
     expect(hello).to eq('Hello, Den')
   end
 
   it 'name Carl' do
     expect(hello('Carl')).to eq('Hello, Carl')
+  end
+end
+
+describe 'Test method role' do
+  it 'fail role' do
+    expect(role(-1)).to eq('No valid role')
+  end
+
+  it 'User role' do
+    expect(role(2)).to eq('User')
+  end
+
+  it 'Moderator role' do
+    expect(role(9)).to eq('Moderator')
   end
 end
