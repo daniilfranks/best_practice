@@ -36,7 +36,7 @@ describe 'Test method languages' do
 end
 
 describe 'Test method hello' do
-  it 'defined method?' do
+  it '#defined method?' do
     expect(defined?(hello)).to be_truthy
   end
 
@@ -68,5 +68,22 @@ describe 'Test method role' do
 
   it 'Moderator role' do
     expect(role(9)).to eq('Moderator')
+  end
+end
+
+describe 'Test method valid_integer?' do
+  it '1 valid' do
+    expect(valid_integer?(1)).to be_truthy
+  end
+
+  it '11 valid' do
+    expect(valid_integer?(11)).to be_falsey
+  end
+end
+
+describe 'Test method using_while' do
+  it '#using_while' do
+    looping = "Hi Balanar\nHi Balanar\nHi Balanar\nHi Balanar\n"
+    expect{ using_while }.to output(looping).to_stdout
   end
 end

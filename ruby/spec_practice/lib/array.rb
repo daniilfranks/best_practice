@@ -18,3 +18,16 @@ def role(param = 1)
     'No valid role'
   end
 end
+
+def valid_integer?(param = 0)
+  param.is_a?(Integer) && (1..10).cover?(param) ? true : false
+end
+
+def using_while
+  levl = 5
+
+  while levl < 9
+  	puts 'Hi Balanar'
+    levl += 1
+  end
+end
