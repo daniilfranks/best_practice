@@ -21,4 +21,12 @@ class ArrayCRUD
   def update(arg, new_arg)
     @items.include?(arg) ? @items[@items.index(arg)] = new_arg : nil
   end
+
+  def items_sort
+    @items.sort!
+  end
+
+  def items_reverse
+    @items.reverse!
+  end
 end

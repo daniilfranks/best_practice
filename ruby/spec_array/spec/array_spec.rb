@@ -62,4 +62,24 @@ describe 'Methods class ArrayCRUD' do
       expect(array.items).to include('new_element')
     end
   end
+
+  context '#sort' do
+    it 'sort element array' do
+      array.create('book', 'phone', 'car')
+      array.items_sort
+
+      expect(array.items.last).to eq('phone')
+      expect(array.items.first).to eq('book')
+    end
+  end
+
+  context '#reverse' do
+    it 'reverse element array' do
+      array.create('book', 'phone', 'car')
+      array.items_reverse
+
+      expect(array.items.last).to eq('book')
+      expect(array.items.first).to eq('car')
+    end
+  end
 end
