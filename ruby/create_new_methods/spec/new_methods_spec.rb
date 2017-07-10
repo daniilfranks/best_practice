@@ -42,4 +42,11 @@ describe 'array methods' do
       expect(add_messages(names)).to eq(add_resault)
     end
   end
+
+  context '#select_t' do
+    it 'select word' do
+      expect(select_t(names){ |name| puts "Hi, #{name}" }).to eq(["Den"])
+      expect{select_t(names){ |name| puts "Hi, #{name}" }}.to output("Hi, Den\n").to_stdout
+    end
+  end
 end

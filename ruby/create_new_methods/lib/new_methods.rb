@@ -25,3 +25,16 @@ def add_messages(array)
   end
   messages
 end
+
+def select_t(array)
+  i = 0
+  resault = []
+  while i < array.size
+    if array[i].upcase.start_with?('D')
+      yield array[i]
+      resault.push(array[i])
+    end
+    i += 1
+  end
+  resault
+end
