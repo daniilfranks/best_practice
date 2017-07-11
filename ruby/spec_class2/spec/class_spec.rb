@@ -53,4 +53,30 @@ describe 'class Post' do
       expect(Post::POSTS.size).to eq(1)
     end
   end
+
+  context '#add_hash_post' do
+    it 'add post in hash' do
+      first.add_hash_post('ruby', 'First title', 'text description')
+      expect(first.hash).to eq("ruby" => {:title=>"First title", :description=>"text description"})
+    end
+
+    it 'count elements in hash' do
+       first.add_hash_post('ruby', 'First title', 'text description')
+       first.add_hash_post('php', 'Second title', 'text')
+
+       expect(first.hash.size).to eq(2)
+    end
+  end
+
+  context '#show_slug' do
+    it 'show 1 element in hash' do
+      first.add_hash_post('ruby', 'First title', 'text description')
+      expect(first.show_slug('ruby')).to eq({:title=>"First title", :description=>"text description"})
+    end
+
+    it 'show nil' do
+      first.add_hash_post('ruby', 'First title', 'text description')
+      expect(first.show_slug('php')).to be_nil
+    end
+  end
 end
