@@ -1,6 +1,10 @@
 require 'bundler'
 Bundler.require
 
+require 'logger'
+
 require_relative '../lib/user'
 
-db = SQLite3::Database.open('../db/base.db')
+def connect_db
+  SQLite3::Database.open('db/base.db')
+end
