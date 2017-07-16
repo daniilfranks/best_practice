@@ -1,27 +1,7 @@
 require 'spec_helper'
 
 describe 'class User' do
-  let(:user) { User.new('Den', 30, 20, 10) }
-
-  before do
-    @db = DB
-    User.drop_table
-    User.create_table
-    User.insert_fake_users
-  end
-
-  context 'attributes' do
-    it 'has a name, jobs, hours_worked, job_success' do
-      expect(user.name).to eq('Den')
-      expect(user.jobs).to eq(30)
-      expect(user.hours_worked).to eq(20)
-      expect(user.job_success).to eq(10)
-    end
-
-    it 'has a id' do
-      expect{user.id = 1}.to raise_error(NoMethodError)
-    end
-  end
+  #let(:user) { User.new }
 
   context '#all' do
   	it 'not raise error' do
@@ -63,28 +43,5 @@ describe 'class User' do
     it 'select sum jobs' do
       expect(@db.execute(user.user_sum_jobs)[0]).to eq([47])
     end
-  end
-end
-
-describe 'creat drop table methods' do
-  before do
-    @db = DB
-  end
-
-  context '.drop_table' do
-    it 'drop table users' do
-      User.drop_table
-      check_sql = "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='users'"
-      
-      expect(@db.execute(check_sql)[0]).to eq(nil)
-    end
-  end
-
-  context '#save' do
-    user = User.new('TJ', 30, 20, 10)
-    user.save
-
-    expect(user.id).to eq(10)
-    expect(@db.execute("SELECT * FROM users")).to eq([[10, "TJ", 30, 20, 10]])
   end
 end
