@@ -1,0 +1,49 @@
+require_relative 'config/environment'
+
+def logger
+  logger = Logger.new('log/logfile.log', 'daily')
+end
+
+desc 'Create db users'
+task :create_user_db do
+  begin
+    DB.execute("CREATE TABLE users(
+	            users_id     integer PRIMARY KEY,
+	            name         text    UNIQUE NOT NULL,
+	            jobs         integer DEFAULT 0
+	          )")
+	logger.info('CREATE TABLE users!')
+  rescue Exception => e
+	logger.error(e)
+  end
+end
+
+desc 'Drop db users'
+task :drop_user_db do
+  begin
+    DB.execute('DROP TABLE users')
+	logger.info('DROP TABLE users!')
+  rescue Exception => e
+    logger.error(e)
+  end
+end
+
+desc 'Add users to db'
+task :insert_user_db do
+  begin
+    DB.execute("INSERT INTO users(name, jobs, hours_worked, job_success)
+                        VALUES 
+                              ('Den', 7),
+                              ('Alan', 10),
+                              ('Leo', 1),
+                              ('Mark', 2),
+                              ('Jok', 6),
+                              ('Ahmed', 16),
+                              ('Valera', 4),
+                              ('Enot', 1)
+    	               ")
+	logger.info('Users successfully added to db!')
+  rescue Exception => e
+    logger.error(e)
+  end
+end

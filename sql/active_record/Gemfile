@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+source "https://rubygems.org"
+
+gem 'sqlite3'
+gem 'activerecord'
+gem 'rake'
+gem 'pry'
+
+group :test do
+  gem 'rspec'
+  gem 'guard'
+  gem 'guard-rspec'
+  gem 'rubocop'
+  gem 'database_cleaner'
+end
