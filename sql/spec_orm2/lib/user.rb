@@ -12,4 +12,8 @@ class User
       user
     end
   end
+
+  def self.find_by_name(name)
+    DB.execute("SELECT * FROM users WHERE name = ? LIMIT 1", name)[0]
+  end
 end
