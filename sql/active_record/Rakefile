@@ -7,6 +7,7 @@ end
 
 # https://github.com/janko-m/sinatra-activerecord
 # rake db:create_migration NAME=create_users
+# rake db:create_migration NAME=add_timestamps
 # rake db:migrate
 
 # rake db:seed

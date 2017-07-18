@@ -64,6 +64,7 @@ GEM
     rb-fsevent (0.10.2)
     rb-inotify (0.9.10)
       ffi (>= 0.5.0, < 2)
+    require_all (1.4.0)
     rspec (3.6.0)
       rspec-core (~> 3.6.0)
       rspec-expectations (~> 3.6.0)
@@ -113,6 +114,7 @@ DEPENDENCIES
   guard-rspec
   pry
   rake
+  require_all
   rspec
   rubocop
   sinatra
