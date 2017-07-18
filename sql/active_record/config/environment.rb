@@ -1,18 +1,8 @@
 require 'bundler'
+require 'sinatra/activerecord'
 Bundler.require
 
-require 'logger'
-require 'active_record'
+Dir[File.join(File.dirname(__FILE__), "../app/models", "*.rb")].each { |f| require f }
 
-require_relative '../lib/user'
-
-DB = ActiveRecord::Base.establish_connection(
-      :adapter => "sqlite3",
-      :database => "../db/base.db"
-    )
-
-DB = ActiveRecord::Base.connection
-
-if ENV["ACTIVE_RECORD_ENV"] == 'test'
-  ActiveRecord::Migration.verbose = false
-end
+connection_details = YAML::load(File.open('config/database.yml'))
+ActiveRecord::Base.establish_connection(connection_details)
