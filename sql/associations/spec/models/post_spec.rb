@@ -3,6 +3,14 @@ require_relative '../spec_helper'
 describe 'class Post' do
   before do
     @post = Post.create(name: 'First post')
+
+    @first = Post.create(name: 'My first post')
+    tag = Tag.create(name: 'ruby')
+    post_tags = PostTag.create(name: 'languages')
+    
+    tag.post_tags << post_tags
+    tag.save
+    @first.tags << tag
   end
 
   it 'has a name' do
@@ -44,5 +52,23 @@ describe 'class Post' do
     @post.post_tags << post_tag
 
     expect(@post.tags).to include(tag)
+  end
+
+  context '.get_first_post_tags' do
+    it 'return first get_first_post_tags' do
+      expect(@first.get_first_post_tags).to eq(2)
+    end
+  end
+
+  context '.tags_count' do
+    it 'return cout tags' do
+      expect(@first.tags_count).to eq(1)
+    end
+  end
+
+  context '.post_tags_count' do
+    it 'return cout post_tags' do
+      expect(@first.post_tags_count).to eq(1)
+    end
   end
 end
