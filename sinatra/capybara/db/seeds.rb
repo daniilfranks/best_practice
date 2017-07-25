@@ -1,0 +1,1 @@
+User.create(name: 'Den', jobs: 100)
