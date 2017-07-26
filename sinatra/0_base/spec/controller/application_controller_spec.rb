@@ -23,4 +23,21 @@ describe 'ApplicationController' do
       end
     end
   end
+
+  context '/hello' do
+    it 'return text' do
+      get '/hello'
+      expect(last_response.body).to include('Hello world')
+    end
+
+    it 'return name' do
+      get '/hello/den'
+      expect(last_response.body).to include('Hello, den')
+    end
+
+    it 'return integer' do
+      get '/integer/5/5'
+      expect(last_response.body).to include('25')
+    end
+  end
 end
