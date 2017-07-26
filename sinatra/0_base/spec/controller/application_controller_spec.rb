@@ -40,4 +40,42 @@ describe 'ApplicationController' do
       expect(last_response.body).to include('25')
     end
   end
+
+  context '/form' do
+    it 'return status 200' do
+      get '/form'
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'return form params' do
+      params = { name: 'Den' }
+      post '/form', params
+
+      expect(last_response.body).to eq('My name, Den')
+    end
+  end
+
+  context '/users' do
+    it 'return status 200 page users' do
+      get '/users'
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'return status 200 page users/new' do
+      get '/users/new'
+      expect(last_response.status).to eq(200)
+    end
+
+    it 'return list users in page users' do
+      get '/users'
+      expect(last_response.body).to include('Mark')
+    end
+
+    it 'return form params' do
+      params = { name: 'Den', age: 26 }
+      post '/users/new', params
+
+      expect(last_response.body).to include('Den', '26')
+    end
+  end
 end
