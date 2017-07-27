@@ -25,7 +25,7 @@ describe 'form contact' do
       fill_in("contact[login]", with: 'Den')
       click_button('Sign me up!')
 
-      expect(page).to have_text({"login"=>"Den", "age"=>"", "city"=>"", "phone"=>"", "0"=>{"name"=>"book_id_1", "quant"=>"0"}})
+      expect(page).to have_text({"login"=>"Den", "age"=>"", "city"=>"", "phone"=>"", "number"=>"", "0"=>{"name"=>"book_id_1", "quant"=>"0"}})
     end
   end
 end

@@ -5,6 +5,7 @@
 	<p>Age: <input type="text" name="contact[age]"></p>
 	<p>city: <input type="text" name="contact[city]"></p>
 	<p>phone: <input type="text" name="contact[phone]"></p>
+	<p>number: <input type="number" name="contact[number]"></p>
 	<p>checbox: <input type="checkbox" name="contact[contract]"></p>
 	<p>select items: 
 	  <select name="contact[0][name]">
@@ -19,6 +20,11 @@
 	  	<option value="1">1</option>
 	  	<option value="2">2</option>
 	  </select>
+	</p>
+	<p>radio:
+      <input type="radio" name="contact[role]" value="User">User</input>
+      <input type="radio" name="contact[role]" value="Moderator">Moderator</input>
+      <input type="radio" name="contact[role]" value="Admin">Admin</input>
 	</p>
 	<button type="submit" value="Sign me up!">Sign me up!</button>
 </form>
