@@ -29,3 +29,37 @@ describe 'form contact' do
     end
   end
 end
+
+describe 'class User' do
+  let(:user) { User.new('text text') }
+
+  it 'initialzie' do
+    expect(user).to be_an_instance_of(User)
+  end
+
+  it 'can have text' do
+    expect(user.text).to eq('text text')
+  end
+
+  it 'count words' do
+    expect(user.count_words).to eq(2)
+  end
+
+  it 'can hello' do
+    visit '/hello'
+
+    expect(page).to have_text('Hello')
+  end
+
+  context 'resault form' do
+  	it 'create text' do
+      visit '/posts/new'
+
+      fill_in("post[text]", with: 'text text')
+      click_button('Create text')
+
+      expect(page).to have_text('text text')
+      expect(page).to have_text(2)
+    end
+  end
+end

@@ -15,4 +15,21 @@ class ApplicationController < Sinatra::Base
   post '/forms/:name' do
     params['contact'].inspect
   end
+
+  get '/posts/new' do
+    erb :'posts/new'
+  end
+
+  get '/posts/show' do
+    erb :'posts/show'
+  end
+
+  post '/posts/new' do
+    @text = User.new(params['post']['text'])
+    erb :'posts/show'
+  end
+
+  get '/hello' do
+    User.hello
+  end
 end
