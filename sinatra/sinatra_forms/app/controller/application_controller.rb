@@ -32,4 +32,17 @@ class ApplicationController < Sinatra::Base
   get '/hello' do
     User.hello
   end
+
+  get '/items' do
+    erb :'items/index'
+  end
+
+  get '/items/new' do
+    erb :'items/new'
+  end
+
+  post '/items/new' do
+    @item = Item.new(name: params['item']['name'], description: params['item']['description'], price: params['item']['price'])
+    erb :'items/index'
+  end
 end
