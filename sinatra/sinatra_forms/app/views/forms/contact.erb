@@ -1,0 +1,24 @@
+<h1>Contact form</h1>
+
+<form action="/forms/contact" method="post">
+	<p>Login: <input type="text" name="contact[login]"></p>
+	<p>Age: <input type="text" name="contact[age]"></p>
+	<p>city: <input type="text" name="contact[city]"></p>
+	<p>phone: <input type="text" name="contact[phone]"></p>
+	<p>checbox: <input type="checkbox" name="contact[contract]"></p>
+	<p>select items: 
+	  <select name="contact[0][name]">
+	  	<option value="book_id_1">Ruby book</option>
+	  	<option value="book_id_2">Php book</option>
+	  	<option value="book_id_3">Java book</option>
+	  	<option value="book_id_4">C++ book</option>
+	  </select>
+
+	  <select name="contact[0][quant]">
+	  	<option value="0">0</option>
+	  	<option value="1">1</option>
+	  	<option value="2">2</option>
+	  </select>
+	</p>
+	<button type="submit" value="Sign me up!">Sign me up!</button>
+</form>
