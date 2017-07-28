@@ -1,0 +1,22 @@
+# frozen_string_literal: true
+source "https://rubygems.org"
+
+gem 'sinatra'
+gem 'sqlite3'
+gem 'sinatra-activerecord'
+gem 'rake'
+gem 'puma'
+gem 'require_all'
+gem 'pry'
+
+group :test do
+  gem 'rspec'
+  gem 'rack-test'
+  gem 'capybara'
+  gem 'poltergeist'
+  gem 'guard'
+  gem 'guard-rspec'
+  gem 'rubocop'
+  gem 'database_cleaner'
+  gem 'sinatra-contrib'
+end
