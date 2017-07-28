@@ -6,6 +6,8 @@ class ApplicationController < Sinatra::Base
     use Rack::Session::Cookie, :key => 'rack.session',
                                :expire_after => 2592000,
                                :secret => 'a1v1F0O8xE7zA293lJ6cN1'
+    register Sinatra::Namespace
+    use Rack::MethodOverride
   end
 
   get '/' do

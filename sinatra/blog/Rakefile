@@ -6,9 +6,10 @@ task :console do
 end
 
 # https://github.com/janko-m/sinatra-activerecord
-# rake db:create_migration NAME=create_users
-# rake db:create_migration NAME=add_timestamps
+# rake db:create_migration NAME=create_posts
 # rake db:migrate
 
 # rake db:seed
 # rake console
+
+# t.timestamps
