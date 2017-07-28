@@ -5,6 +5,17 @@
   </head>
 
   <body>
+    <div>
+      <a href="/">Home</a> |
+      <% if session[:user_id].nil? %>
+        <a href="/sign_in">Sign_in</a> | 
+        <a href="/sign_up">Sign_up</a>
+      <% else %>
+        <a href="#">Hello, <%= session[:user_id] %></a> |
+        <a href="/logout">Logout</a>
+      <% end %>
+    </div>
+    <a href="/private">Private page</a>
     <%= yield %>
   </body>
 </html>
