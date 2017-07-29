@@ -80,10 +80,14 @@ GEM
     public_suffix (2.0.5)
     puma (3.9.1)
     rack (2.0.3)
+    rack-flash3 (1.0.5)
+      rack
     rack-protection (2.0.0)
       rack
     rack-test (0.6.3)
       rack (>= 1.0)
+    rack_csrf (2.6.0)
+      rack (>= 1.1.0)
     rainbow (2.2.2)
       rake
     rake (12.0.0)
@@ -154,7 +158,9 @@ DEPENDENCIES
   poltergeist
   pry
   puma
+  rack-flash3
   rack-test
+  rack_csrf
   rake
   require_all
   rspec

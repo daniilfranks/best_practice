@@ -8,6 +8,8 @@ class ApplicationController < Sinatra::Base
                                :secret => 'a1v1F0O8xE7zA293lJ6cN1'
     register Sinatra::Namespace
     use Rack::MethodOverride
+    use Rack::Flash
+    use Rack::Csrf, :raise => true
   end
 
   get '/' do

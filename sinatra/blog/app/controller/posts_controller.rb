@@ -1,6 +1,6 @@
 class PostsController < ApplicationController
   namespace '/posts' do
-  	# show all
+  	# Show all
     get do
       @posts = Post.all
       erb :'posts/index'
@@ -16,9 +16,14 @@ class PostsController < ApplicationController
       @post.title = params['post']['title']
       @post.description = params['post']['description']
       @post.user_id = params['post']['user_id']
-      @post.save
-
-      redirect to '/posts'
+      
+      if @post.save
+        flash[:notice] = 'Post successfully created.'
+        redirect '/posts'
+      else
+      	flash[:error] = @post.errors.full_messages
+      	redirect '/posts/new'
+      end
     end
 
     # Update
@@ -31,7 +36,13 @@ class PostsController < ApplicationController
       @post = Post.find(params[:id])
       @post.update(params['post'])
 
-      redirect "/posts/#{params[:id]}"
+      if @post.save
+        flash[:notice] = 'Post successfully updated.'
+        redirect '/posts'
+      else
+      	flash[:error] = @post.errors.full_messages
+      	redirect "/posts/#{params[:id]}/edit"
+      end
     end
 
     # Show
@@ -45,6 +56,7 @@ class PostsController < ApplicationController
       @post = Post.find(params[:id])
       @post.destroy
 
+      flash[:notice] = 'Post successfully deleted.'
       redirect to '/posts'
     end
   end

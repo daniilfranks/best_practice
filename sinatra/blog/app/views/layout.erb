@@ -10,6 +10,17 @@
       <a href="/posts">Posts</a>
     </div>
 
+    <div>
+      <% if flash[:notice] %>
+        <p class="alert alert-success"><%= flash[:notice] %></p>
+      <% end %>
+     <% if flash[:error] %>
+       <% flash[:error].each do |error| %>
+         <p class="alert alert-error"><%= error %></p>
+       <% end %>
+     <% end %>
+    </div>
+
     <%= yield %>
   </body>
 </html>

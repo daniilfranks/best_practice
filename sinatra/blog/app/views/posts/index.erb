@@ -7,9 +7,11 @@
   <%= post.title %>
   <%= post.description %>
   <%= post.user_id %>
+  <%= post.created_at %>
   <a href="/posts/<%= post.id %>">Show</a>
   <a href="/posts/<%= post.id %>/edit">Edit</a>
   <form action="/posts/<%= post.id %>/delete" method="post">
+    <%= Rack::Csrf.tag(env) %>
     <input name='_method' type='hidden' value='delete' />
 	<input type="submit" value="Delete">
   </form>

@@ -1,6 +1,7 @@
 <h1>Create post</h1>
 
 <form action="/posts" method="post">
+  <%= Rack::Csrf.tag(env) %>
   <p>Title: <input type="text" name="post[title]"></p>
   <p>Description: <input type="text" name="post[description]"></p>
   <p>User_id: <input type="number" name="post[user_id]"></p>
