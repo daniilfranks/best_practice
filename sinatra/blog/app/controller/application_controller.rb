@@ -10,6 +10,7 @@ class ApplicationController < Sinatra::Base
     use Rack::MethodOverride
     use Rack::Flash
     use Rack::Csrf, :raise => true
+    register Sinatra::StrongParams
   end
 
   get '/' do

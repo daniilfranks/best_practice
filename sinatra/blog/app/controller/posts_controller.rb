@@ -11,11 +11,8 @@ class PostsController < ApplicationController
       erb :'posts/new'
     end
 
-    post do
-      @post = Post.new
-      @post.title = params['post']['title']
-      @post.description = params['post']['description']
-      @post.user_id = params['post']['user_id']
+    post allows: [:title, :description, :user_id] do
+      @post = Post.new(params)
       
       if @post.save
         flash[:notice] = 'Post successfully created.'
@@ -32,9 +29,9 @@ class PostsController < ApplicationController
       erb :'posts/edit'
     end
 
-    put '/:id' do
-      @post = Post.find(params[:id])
-      @post.update(params['post'])
+    put '/:id', allows: [:id, :title, :description, :user_id, :created_at] do
+      @post = Post.find(params['id'])
+      @post.update(params)
 
       if @post.save
         flash[:notice] = 'Post successfully updated.'
@@ -52,8 +49,8 @@ class PostsController < ApplicationController
     end
 
     # Destroy
-    delete '/:id/delete' do
-      @post = Post.find(params[:id])
+    delete '/:id/delete', allows: [:id] do
+      @post = Post.find(params['id'])
       @post.destroy
 
       flash[:notice] = 'Post successfully deleted.'

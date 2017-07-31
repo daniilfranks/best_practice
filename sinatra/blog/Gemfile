@@ -11,6 +11,7 @@ gem 'require_all'
 gem 'pry'
 gem 'rack-flash3'
 gem 'rack_csrf'
+gem 'sinatra-strong-params', :require => 'sinatra/strong-params'
 
 group :test do
   gem 'rspec'
