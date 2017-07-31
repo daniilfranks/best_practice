@@ -4,3 +4,9 @@
 <p>Description: <%= @post.description %></p>
 <p>User_id: <%= @post.user_id %></p>
 <p>Created: <%= @post.created_at %></p>
+
+<form action="/posts/<%= @post.id %>/delete" method="post">
+    <%= Rack::Csrf.tag(env) %>
+    <input name='_method' type='hidden' value='delete' />
+	<input type="submit" value="Delete">
+</form>

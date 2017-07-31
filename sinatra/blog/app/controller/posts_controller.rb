@@ -51,10 +51,14 @@ class PostsController < ApplicationController
     # Destroy
     delete '/:id/delete', allows: [:id] do
       @post = Post.find(params['id'])
-      @post.destroy
-
-      flash[:notice] = 'Post successfully deleted.'
-      redirect to '/posts'
+      
+      if @post.destroy
+        flash[:notice] = 'Post successfully deleted.'
+        redirect to '/posts'
+      else
+      	flash[:error] = @post.errors.full_messages
+      	redirect '/posts'
+      end
     end
   end
 end
