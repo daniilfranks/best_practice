@@ -42,8 +42,8 @@ describe 'get/post' do
     fill_in('item[price]', with: 120)
     click_button('Create item')
 
-    expect(page).to have_text('Den')
-    expect(page).to have_text('text text')
-    expect(page).to have_text('120')
+    expect(page).to have_content('Den')
+    expect(page).to have_content('text text')
+    expect(page).to have_content('120')
   end
 end
