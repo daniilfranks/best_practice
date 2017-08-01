@@ -6,10 +6,20 @@ task :console do
 end
 
 # https://github.com/janko-m/sinatra-activerecord
-# rake db:create_migration NAME=create_posts
+# rake -T
+
+# rake db:create_migration NAME=create_users
+# rake db:create_migration NAME=create_add_index_to_users
 # rake db:migrate
 
 # rake db:seed
 # rake console
 
 # t.timestamps
+
+# rake console
+# @user = User.find(4)
+# @user.posts
+
+# @post = @user.posts.first
+# @post.user

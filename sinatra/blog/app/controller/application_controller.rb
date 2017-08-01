@@ -13,7 +13,16 @@ class ApplicationController < Sinatra::Base
     register Sinatra::StrongParams
   end
 
-  get '/' do
-  	erb :index
+  #helpers
+  def current_user
+    @current_user ||= User.find_by(id: session[:user_id])
+  end
+
+  def logged_in?
+    !current_user.nil?
+  end
+
+  def title
+    '129 page'
   end
 end

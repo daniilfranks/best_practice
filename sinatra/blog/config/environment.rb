@@ -8,6 +8,7 @@ require 'sinatra/namespace'
 require 'sinatra/activerecord'
 require 'rack-flash'
 require 'rack/csrf'
+require 'digest'
 
 connection_details = YAML::load(File.open('config/database.yml'))[ENV["SINATRA_ENV"]]
 ActiveRecord::Base.establish_connection(connection_details)
