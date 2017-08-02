@@ -1,8 +1,15 @@
 require_relative 'config/environment.rb'
 require 'sinatra/activerecord/rake'
+require 'rake/sprocketstask'
 
 task :console do
   Pry.start
+end
+
+Rake::SprocketsTask.new do |t|
+  t.environment = $sprockets
+  t.output      = "./public/assets"
+  t.assets      = %w( app.js app.css )
 end
 
 # https://github.com/janko-m/sinatra-activerecord
@@ -23,3 +30,11 @@ end
 
 # @post = @user.posts.first
 # @post.user
+
+#error flash
+#patrials
+
+#assets
+# rake assets          # Compile assets
+# rake clean_assets    # Clean old assets
+# rake clobber_assets  # Remove all assets

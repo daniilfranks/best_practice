@@ -21,8 +21,4 @@ class ApplicationController < Sinatra::Base
   def logged_in?
     !current_user.nil?
   end
-
-  def title
-    '129 page'
-  end
 end

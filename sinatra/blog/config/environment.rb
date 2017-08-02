@@ -9,6 +9,12 @@ require 'sinatra/activerecord'
 require 'rack-flash'
 require 'rack/csrf'
 require 'digest'
+require 'sprockets'
+
+$sprockets = Sprockets::Environment.new
+%w(javascripts stylesheets images fonts).each do |name|
+  $sprockets.append_path "app/assets/#{name}"
+end
 
 connection_details = YAML::load(File.open('config/database.yml'))[ENV["SINATRA_ENV"]]
 ActiveRecord::Base.establish_connection(connection_details)
