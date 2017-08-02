@@ -1,3 +1,365 @@
+/**
+ * what-input - A global utility for tracking the current input method (mouse, keyboard or touch).
+ * @version v4.2.0
+ * @link https://github.com/ten1seven/what-input
+ * @license MIT
+ */
+
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define("whatInput", [], factory);
+	else if(typeof exports === 'object')
+		exports["whatInput"] = factory();
+	else
+		root["whatInput"] = factory();
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
+
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+
+
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	module.exports = function () {
+	  /*
+	   * variables
+	   */
+
+	  // last used input type
+	  var currentInput = 'initial';
+
+	  // last used input intent
+	  var currentIntent = null;
+
+	  // cache document.documentElement
+	  var doc = document.documentElement;
+
+	  // form input types
+	  var formInputs = ['input', 'select', 'textarea'];
+
+	  var functionList = [];
+
+	  // list of modifier keys commonly used with the mouse and
+	  // can be safely ignored to prevent false keyboard detection
+	  var ignoreMap = [16, // shift
+	  17, // control
+	  18, // alt
+	  91, // Windows key / left Apple cmd
+	  93 // Windows menu / right Apple cmd
+	  ];
+
+	  // list of keys for which we change intent even for form inputs
+	  var changeIntentMap = [9 // tab
+	  ];
+
+	  // mapping of events to input types
+	  var inputMap = {
+	    keydown: 'keyboard',
+	    mousedown: 'mouse',
+	    mousemove: 'mouse',
+	    MSPointerDown: 'pointer',
+	    MSPointerMove: 'pointer',
+	    pointerdown: 'pointer',
+	    pointermove: 'pointer',
+	    touchstart: 'touch'
+	  };
+
+	  // array of all used input types
+	  var inputTypes = [];
+
+	  // boolean: true if touch buffer is active
+	  var isBuffering = false;
+
+	  // boolean: true if the page is being scrolled
+	  var isScrolling = false;
+
+	  // store current mouse position
+	  var mousePos = {
+	    x: null,
+	    y: null
+	  };
+
+	  // map of IE 10 pointer events
+	  var pointerMap = {
+	    2: 'touch',
+	    3: 'touch', // treat pen like touch
+	    4: 'mouse'
+	  };
+
+	  var supportsPassive = false;
+
+	  try {
+	    var opts = Object.defineProperty({}, 'passive', {
+	      get: function get() {
+	        supportsPassive = true;
+	      }
+	    });
+
+	    window.addEventListener('test', null, opts);
+	  } catch (e) {}
+
+	  /*
+	   * set up
+	   */
+
+	  var setUp = function setUp() {
+	    // add correct mouse wheel event mapping to `inputMap`
+	    inputMap[detectWheel()] = 'mouse';
+
+	    addListeners();
+	    setInput();
+	  };
+
+	  /*
+	   * events
+	   */
+
+	  var addListeners = function addListeners() {
+	    // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
+	    // can only demonstrate potential, but not actual, interaction
+	    // and are treated separately
+
+	    // pointer events (mouse, pen, touch)
+	    if (window.PointerEvent) {
+	      doc.addEventListener('pointerdown', updateInput);
+	      doc.addEventListener('pointermove', setIntent);
+	    } else if (window.MSPointerEvent) {
+	      doc.addEventListener('MSPointerDown', updateInput);
+	      doc.addEventListener('MSPointerMove', setIntent);
+	    } else {
+	      // mouse events
+	      doc.addEventListener('mousedown', updateInput);
+	      doc.addEventListener('mousemove', setIntent);
+
+	      // touch events
+	      if ('ontouchstart' in window) {
+	        doc.addEventListener('touchstart', touchBuffer);
+	        doc.addEventListener('touchend', touchBuffer);
+	      }
+	    }
+
+	    // mouse wheel
+	    doc.addEventListener(detectWheel(), setIntent, supportsPassive ? { passive: true } : false);
+
+	    // keyboard events
+	    doc.addEventListener('keydown', updateInput);
+	  };
+
+	  // checks conditions before updating new input
+	  var updateInput = function updateInput(event) {
+	    // only execute if the touch buffer timer isn't running
+	    if (!isBuffering) {
+	      var eventKey = event.which;
+	      var value = inputMap[event.type];
+	      if (value === 'pointer') value = pointerType(event);
+
+	      if (currentInput !== value || currentIntent !== value) {
+	        var activeElem = document.activeElement;
+	        var activeInput = false;
+	        var notFormInput = activeElem && activeElem.nodeName && formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1;
+
+	        if (notFormInput || changeIntentMap.indexOf(eventKey) !== -1) {
+	          activeInput = true;
+	        }
+
+	        if (value === 'touch' ||
+	        // ignore mouse modifier keys
+	        value === 'mouse' ||
+	        // don't switch if the current element is a form input
+	        value === 'keyboard' && eventKey && activeInput && ignoreMap.indexOf(eventKey) === -1) {
+	          // set the current and catch-all variable
+	          currentInput = currentIntent = value;
+
+	          setInput();
+	        }
+	      }
+	    }
+	  };
+
+	  // updates the doc and `inputTypes` array with new input
+	  var setInput = function setInput() {
+	    doc.setAttribute('data-whatinput', currentInput);
+	    doc.setAttribute('data-whatintent', currentInput);
+
+	    if (inputTypes.indexOf(currentInput) === -1) {
+	      inputTypes.push(currentInput);
+	      doc.className += ' whatinput-types-' + currentInput;
+	    }
+
+	    fireFunctions('input');
+	  };
+
+	  // updates input intent for `mousemove` and `pointermove`
+	  var setIntent = function setIntent(event) {
+	    // test to see if `mousemove` happened relative to the screen
+	    // to detect scrolling versus mousemove
+	    if (mousePos['x'] !== event.screenX || mousePos['y'] !== event.screenY) {
+	      isScrolling = false;
+
+	      mousePos['x'] = event.screenX;
+	      mousePos['y'] = event.screenY;
+	    } else {
+	      isScrolling = true;
+	    }
+
+	    // only execute if the touch buffer timer isn't running
+	    // or scrolling isn't happening
+	    if (!isBuffering && !isScrolling) {
+	      var value = inputMap[event.type];
+	      if (value === 'pointer') value = pointerType(event);
+
+	      if (currentIntent !== value) {
+	        currentIntent = value;
+
+	        doc.setAttribute('data-whatintent', currentIntent);
+
+	        fireFunctions('intent');
+	      }
+	    }
+	  };
+
+	  // buffers touch events because they frequently also fire mouse events
+	  var touchBuffer = function touchBuffer(event) {
+	    if (event.type === 'touchstart') {
+	      isBuffering = false;
+
+	      // set the current input
+	      updateInput(event);
+	    } else {
+	      isBuffering = true;
+	    }
+	  };
+
+	  var fireFunctions = function fireFunctions(type) {
+	    for (var i = 0, len = functionList.length; i < len; i++) {
+	      if (functionList[i].type === type) {
+	        functionList[i].function.call(undefined, currentIntent);
+	      }
+	    }
+	  };
+
+	  /*
+	   * utilities
+	   */
+
+	  var pointerType = function pointerType(event) {
+	    if (typeof event.pointerType === 'number') {
+	      return pointerMap[event.pointerType];
+	    } else {
+	      // treat pen like touch
+	      return event.pointerType === 'pen' ? 'touch' : event.pointerType;
+	    }
+	  };
+
+	  // detect version of mouse wheel event to use
+	  // via https://developer.mozilla.org/en-US/docs/Web/Events/wheel
+	  var detectWheel = function detectWheel() {
+	    var wheelType = void 0;
+
+	    // Modern browsers support "wheel"
+	    if ('onwheel' in document.createElement('div')) {
+	      wheelType = 'wheel';
+	    } else {
+	      // Webkit and IE support at least "mousewheel"
+	      // or assume that remaining browsers are older Firefox
+	      wheelType = document.onmousewheel !== undefined ? 'mousewheel' : 'DOMMouseScroll';
+	    }
+
+	    return wheelType;
+	  };
+
+	  /*
+	   * init
+	   */
+
+	  // don't start script unless browser cuts the mustard
+	  // (also passes if polyfills are used)
+	  if ('addEventListener' in window && Array.prototype.indexOf) {
+	    setUp();
+	  }
+
+	  /*
+	   * api
+	   */
+
+	  return {
+	    // returns string: the current input type
+	    // opt: 'loose'|'strict'
+	    // 'strict' (default): returns the same value as the `data-whatinput` attribute
+	    // 'loose': includes `data-whatintent` value if it's more current than `data-whatinput`
+	    ask: function ask(opt) {
+	      return opt === 'loose' ? currentIntent : currentInput;
+	    },
+
+	    // returns array: all the detected input types
+	    types: function types() {
+	      return inputTypes;
+	    },
+
+	    // overwrites ignored keys with provided array
+	    ignoreKeys: function ignoreKeys(arr) {
+	      ignoreMap = arr;
+	    },
+
+	    // attach functions to input and intent "events"
+	    // funct: function to fire on change
+	    // eventType: 'input'|'intent'
+	    onChange: function onChange(funct, eventType) {
+	      functionList.push({
+	        function: funct,
+	        type: eventType
+	      });
+	    }
+	  };
+	}();
+
+/***/ })
+/******/ ])
+});
+;
 /*!
  * jQuery JavaScript Library v3.2.1
  * https://jquery.com/
@@ -10252,435 +10614,73 @@ if ( !noGlobal ) {
 
 return jQuery;
 } );
-/**
- * what-input - A global utility for tracking the current input method (mouse, keyboard or touch).
- * @version v4.2.0
- * @link https://github.com/ten1seven/what-input
- * @license MIT
- */
-
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define("whatInput", [], factory);
-	else if(typeof exports === 'object')
-		exports["whatInput"] = factory();
-	else
-		root["whatInput"] = factory();
-})(this, function() {
-return /******/ (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
-
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId])
-/******/ 			return installedModules[moduleId].exports;
-
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			exports: {},
-/******/ 			id: moduleId,
-/******/ 			loaded: false
-/******/ 		};
-
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-
-/******/ 		// Flag the module as loaded
-/******/ 		module.loaded = true;
-
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-
-
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
-
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
-
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
-
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(0);
-/******/ })
-/************************************************************************/
-/******/ ([
-/* 0 */
-/***/ (function(module, exports) {
-
-	'use strict';
-
-	module.exports = function () {
-	  /*
-	   * variables
-	   */
-
-	  // last used input type
-	  var currentInput = 'initial';
-
-	  // last used input intent
-	  var currentIntent = null;
-
-	  // cache document.documentElement
-	  var doc = document.documentElement;
-
-	  // form input types
-	  var formInputs = ['input', 'select', 'textarea'];
-
-	  var functionList = [];
-
-	  // list of modifier keys commonly used with the mouse and
-	  // can be safely ignored to prevent false keyboard detection
-	  var ignoreMap = [16, // shift
-	  17, // control
-	  18, // alt
-	  91, // Windows key / left Apple cmd
-	  93 // Windows menu / right Apple cmd
-	  ];
-
-	  // list of keys for which we change intent even for form inputs
-	  var changeIntentMap = [9 // tab
-	  ];
-
-	  // mapping of events to input types
-	  var inputMap = {
-	    keydown: 'keyboard',
-	    mousedown: 'mouse',
-	    mousemove: 'mouse',
-	    MSPointerDown: 'pointer',
-	    MSPointerMove: 'pointer',
-	    pointerdown: 'pointer',
-	    pointermove: 'pointer',
-	    touchstart: 'touch'
-	  };
-
-	  // array of all used input types
-	  var inputTypes = [];
-
-	  // boolean: true if touch buffer is active
-	  var isBuffering = false;
-
-	  // boolean: true if the page is being scrolled
-	  var isScrolling = false;
-
-	  // store current mouse position
-	  var mousePos = {
-	    x: null,
-	    y: null
-	  };
-
-	  // map of IE 10 pointer events
-	  var pointerMap = {
-	    2: 'touch',
-	    3: 'touch', // treat pen like touch
-	    4: 'mouse'
-	  };
-
-	  var supportsPassive = false;
-
-	  try {
-	    var opts = Object.defineProperty({}, 'passive', {
-	      get: function get() {
-	        supportsPassive = true;
-	      }
-	    });
-
-	    window.addEventListener('test', null, opts);
-	  } catch (e) {}
-
-	  /*
-	   * set up
-	   */
-
-	  var setUp = function setUp() {
-	    // add correct mouse wheel event mapping to `inputMap`
-	    inputMap[detectWheel()] = 'mouse';
-
-	    addListeners();
-	    setInput();
-	  };
-
-	  /*
-	   * events
-	   */
-
-	  var addListeners = function addListeners() {
-	    // `pointermove`, `MSPointerMove`, `mousemove` and mouse wheel event binding
-	    // can only demonstrate potential, but not actual, interaction
-	    // and are treated separately
-
-	    // pointer events (mouse, pen, touch)
-	    if (window.PointerEvent) {
-	      doc.addEventListener('pointerdown', updateInput);
-	      doc.addEventListener('pointermove', setIntent);
-	    } else if (window.MSPointerEvent) {
-	      doc.addEventListener('MSPointerDown', updateInput);
-	      doc.addEventListener('MSPointerMove', setIntent);
-	    } else {
-	      // mouse events
-	      doc.addEventListener('mousedown', updateInput);
-	      doc.addEventListener('mousemove', setIntent);
-
-	      // touch events
-	      if ('ontouchstart' in window) {
-	        doc.addEventListener('touchstart', touchBuffer);
-	        doc.addEventListener('touchend', touchBuffer);
-	      }
-	    }
-
-	    // mouse wheel
-	    doc.addEventListener(detectWheel(), setIntent, supportsPassive ? { passive: true } : false);
-
-	    // keyboard events
-	    doc.addEventListener('keydown', updateInput);
-	  };
-
-	  // checks conditions before updating new input
-	  var updateInput = function updateInput(event) {
-	    // only execute if the touch buffer timer isn't running
-	    if (!isBuffering) {
-	      var eventKey = event.which;
-	      var value = inputMap[event.type];
-	      if (value === 'pointer') value = pointerType(event);
-
-	      if (currentInput !== value || currentIntent !== value) {
-	        var activeElem = document.activeElement;
-	        var activeInput = false;
-	        var notFormInput = activeElem && activeElem.nodeName && formInputs.indexOf(activeElem.nodeName.toLowerCase()) === -1;
-
-	        if (notFormInput || changeIntentMap.indexOf(eventKey) !== -1) {
-	          activeInput = true;
-	        }
-
-	        if (value === 'touch' ||
-	        // ignore mouse modifier keys
-	        value === 'mouse' ||
-	        // don't switch if the current element is a form input
-	        value === 'keyboard' && eventKey && activeInput && ignoreMap.indexOf(eventKey) === -1) {
-	          // set the current and catch-all variable
-	          currentInput = currentIntent = value;
-
-	          setInput();
-	        }
-	      }
-	    }
-	  };
-
-	  // updates the doc and `inputTypes` array with new input
-	  var setInput = function setInput() {
-	    doc.setAttribute('data-whatinput', currentInput);
-	    doc.setAttribute('data-whatintent', currentInput);
-
-	    if (inputTypes.indexOf(currentInput) === -1) {
-	      inputTypes.push(currentInput);
-	      doc.className += ' whatinput-types-' + currentInput;
-	    }
-
-	    fireFunctions('input');
-	  };
-
-	  // updates input intent for `mousemove` and `pointermove`
-	  var setIntent = function setIntent(event) {
-	    // test to see if `mousemove` happened relative to the screen
-	    // to detect scrolling versus mousemove
-	    if (mousePos['x'] !== event.screenX || mousePos['y'] !== event.screenY) {
-	      isScrolling = false;
-
-	      mousePos['x'] = event.screenX;
-	      mousePos['y'] = event.screenY;
-	    } else {
-	      isScrolling = true;
-	    }
-
-	    // only execute if the touch buffer timer isn't running
-	    // or scrolling isn't happening
-	    if (!isBuffering && !isScrolling) {
-	      var value = inputMap[event.type];
-	      if (value === 'pointer') value = pointerType(event);
-
-	      if (currentIntent !== value) {
-	        currentIntent = value;
-
-	        doc.setAttribute('data-whatintent', currentIntent);
-
-	        fireFunctions('intent');
-	      }
-	    }
-	  };
-
-	  // buffers touch events because they frequently also fire mouse events
-	  var touchBuffer = function touchBuffer(event) {
-	    if (event.type === 'touchstart') {
-	      isBuffering = false;
-
-	      // set the current input
-	      updateInput(event);
-	    } else {
-	      isBuffering = true;
-	    }
-	  };
-
-	  var fireFunctions = function fireFunctions(type) {
-	    for (var i = 0, len = functionList.length; i < len; i++) {
-	      if (functionList[i].type === type) {
-	        functionList[i].function.call(undefined, currentIntent);
-	      }
-	    }
-	  };
-
-	  /*
-	   * utilities
-	   */
-
-	  var pointerType = function pointerType(event) {
-	    if (typeof event.pointerType === 'number') {
-	      return pointerMap[event.pointerType];
-	    } else {
-	      // treat pen like touch
-	      return event.pointerType === 'pen' ? 'touch' : event.pointerType;
-	    }
-	  };
-
-	  // detect version of mouse wheel event to use
-	  // via https://developer.mozilla.org/en-US/docs/Web/Events/wheel
-	  var detectWheel = function detectWheel() {
-	    var wheelType = void 0;
-
-	    // Modern browsers support "wheel"
-	    if ('onwheel' in document.createElement('div')) {
-	      wheelType = 'wheel';
-	    } else {
-	      // Webkit and IE support at least "mousewheel"
-	      // or assume that remaining browsers are older Firefox
-	      wheelType = document.onmousewheel !== undefined ? 'mousewheel' : 'DOMMouseScroll';
-	    }
-
-	    return wheelType;
-	  };
-
-	  /*
-	   * init
-	   */
-
-	  // don't start script unless browser cuts the mustard
-	  // (also passes if polyfills are used)
-	  if ('addEventListener' in window && Array.prototype.indexOf) {
-	    setUp();
-	  }
-
-	  /*
-	   * api
-	   */
-
-	  return {
-	    // returns string: the current input type
-	    // opt: 'loose'|'strict'
-	    // 'strict' (default): returns the same value as the `data-whatinput` attribute
-	    // 'loose': includes `data-whatintent` value if it's more current than `data-whatinput`
-	    ask: function ask(opt) {
-	      return opt === 'loose' ? currentIntent : currentInput;
-	    },
-
-	    // returns array: all the detected input types
-	    types: function types() {
-	      return inputTypes;
-	    },
-
-	    // overwrites ignored keys with provided array
-	    ignoreKeys: function ignoreKeys(arr) {
-	      ignoreMap = arr;
-	    },
-
-	    // attach functions to input and intent "events"
-	    // funct: function to fire on change
-	    // eventType: 'input'|'intent'
-	    onChange: function onChange(funct, eventType) {
-	      functionList.push({
-	        function: funct,
-	        type: eventType
-	      });
-	    }
-	  };
-	}();
-
-/***/ })
-/******/ ])
-});
-;
 /******/
  (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
+/******/  // The module cache
+/******/  var installedModules = {};
 /******/
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
+/******/  // The require function
+/******/  function __webpack_require__(moduleId) {
 /******/
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId]) {
-/******/ 			return installedModules[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			i: moduleId,
-/******/ 			l: false,
-/******/ 			exports: {}
-/******/ 		};
+/******/    // Check if module is in cache
+/******/    if(installedModules[moduleId]) {
+/******/      return installedModules[moduleId].exports;
+/******/    }
+/******/    // Create a new module (and put it into the cache)
+/******/    var module = installedModules[moduleId] = {
+/******/      i: moduleId,
+/******/      l: false,
+/******/      exports: {}
+/******/    };
 /******/
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/    // Execute the module function
+/******/    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 /******/
-/******/ 		// Flag the module as loaded
-/******/ 		module.l = true;
+/******/    // Flag the module as loaded
+/******/    module.l = true;
 /******/
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
+/******/    // Return the exports of the module
+/******/    return module.exports;
+/******/  }
 /******/
 /******/
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
+/******/  // expose the modules object (__webpack_modules__)
+/******/  __webpack_require__.m = modules;
 /******/
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
+/******/  // expose the module cache
+/******/  __webpack_require__.c = installedModules;
 /******/
-/******/ 	// identity function for calling harmony imports with the correct context
-/******/ 	__webpack_require__.i = function(value) { return value; };
+/******/  // identity function for calling harmony imports with the correct context
+/******/  __webpack_require__.i = function(value) { return value; };
 /******/
-/******/ 	// define getter function for harmony exports
-/******/ 	__webpack_require__.d = function(exports, name, getter) {
-/******/ 		if(!__webpack_require__.o(exports, name)) {
-/******/ 			Object.defineProperty(exports, name, {
-/******/ 				configurable: false,
-/******/ 				enumerable: true,
-/******/ 				get: getter
-/******/ 			});
-/******/ 		}
-/******/ 	};
+/******/  // define getter function for harmony exports
+/******/  __webpack_require__.d = function(exports, name, getter) {
+/******/    if(!__webpack_require__.o(exports, name)) {
+/******/      Object.defineProperty(exports, name, {
+/******/        configurable: false,
+/******/        enumerable: true,
+/******/        get: getter
+/******/      });
+/******/    }
+/******/  };
 /******/
-/******/ 	// getDefaultExport function for compatibility with non-harmony modules
-/******/ 	__webpack_require__.n = function(module) {
-/******/ 		var getter = module && module.__esModule ?
-/******/ 			function getDefault() { return module['default']; } :
-/******/ 			function getModuleExports() { return module; };
-/******/ 		__webpack_require__.d(getter, 'a', getter);
-/******/ 		return getter;
-/******/ 	};
+/******/  // getDefaultExport function for compatibility with non-harmony modules
+/******/  __webpack_require__.n = function(module) {
+/******/    var getter = module && module.__esModule ?
+/******/      function getDefault() { return module['default']; } :
+/******/      function getModuleExports() { return module; };
+/******/    __webpack_require__.d(getter, 'a', getter);
+/******/    return getter;
+/******/  };
 /******/
-/******/ 	// Object.prototype.hasOwnProperty.call
-/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/  // Object.prototype.hasOwnProperty.call
+/******/  __webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 /******/
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+/******/  // __webpack_public_path__
+/******/  __webpack_require__.p = "";
 /******/
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 35);
+/******/  // Load entry module and return exports
+/******/  return __webpack_require__(__webpack_require__.s = 36);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -10694,8 +10694,8 @@ module.exports = jQuery;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return rtl; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return GetYoDigits; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return rtl; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return GetYoDigits; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return transitionend; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
@@ -10780,7 +10780,7 @@ var Plugin = function () {
 
     this._setup(element, options);
     var pluginName = getPluginName(this);
-    this.uuid = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, pluginName);
+    this.uuid = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, pluginName);
 
     if (!this.$element.attr('data-' + pluginName)) {
       this.$element.attr('data-' + pluginName, this.uuid);
@@ -10835,6 +10835,187 @@ function getPluginName(obj) {
 
 /***/ }),
 /* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Keyboard; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
+/*******************************************
+ *                                         *
+ * This util was created by Marius Olbertz *
+ * Please thank Marius on GitHub /owlbertz *
+ * or the web http://www.mariusolbertz.de/ *
+ *                                         *
+ ******************************************/
+
+
+
+
+
+
+var keyCodes = {
+  9: 'TAB',
+  13: 'ENTER',
+  27: 'ESCAPE',
+  32: 'SPACE',
+  35: 'END',
+  36: 'HOME',
+  37: 'ARROW_LEFT',
+  38: 'ARROW_UP',
+  39: 'ARROW_RIGHT',
+  40: 'ARROW_DOWN'
+};
+
+var commands = {};
+
+// Functions pulled out to be referenceable from internals
+function findFocusable($element) {
+  if (!$element) {
+    return false;
+  }
+  return $element.find('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]').filter(function () {
+    if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).is(':visible') || __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).attr('tabindex') < 0) {
+      return false;
+    } //only have visible elements and those that have a tabindex greater or equal 0
+    return true;
+  });
+}
+
+function parseKey(event) {
+  var key = keyCodes[event.which || event.keyCode] || String.fromCharCode(event.which).toUpperCase();
+
+  // Remove un-printable characters, e.g. for `fromCharCode` calls for CTRL only events
+  key = key.replace(/\W+/, '');
+
+  if (event.shiftKey) key = 'SHIFT_' + key;
+  if (event.ctrlKey) key = 'CTRL_' + key;
+  if (event.altKey) key = 'ALT_' + key;
+
+  // Remove trailing underscore, in case only modifiers were used (e.g. only `CTRL_ALT`)
+  key = key.replace(/_$/, '');
+
+  return key;
+}
+
+var Keyboard = {
+  keys: getKeyCodes(keyCodes),
+
+  /**
+   * Parses the (keyboard) event and returns a String that represents its key
+   * Can be used like Foundation.parseKey(event) === Foundation.keys.SPACE
+   * @param {Event} event - the event generated by the event handler
+   * @return String key - String that represents the key pressed
+   */
+  parseKey: parseKey,
+
+  /**
+   * Handles the given (keyboard) event
+   * @param {Event} event - the event generated by the event handler
+   * @param {String} component - Foundation component's name, e.g. Slider or Reveal
+   * @param {Objects} functions - collection of functions that are to be executed
+   */
+  handleKey: function (event, component, functions) {
+    var commandList = commands[component],
+        keyCode = this.parseKey(event),
+        cmds,
+        command,
+        fn;
+
+    if (!commandList) return console.warn('Component not defined!');
+
+    if (typeof commandList.ltr === 'undefined') {
+      // this component does not differentiate between ltr and rtl
+      cmds = commandList; // use plain list
+    } else {
+      // merge ltr and rtl: if document is rtl, rtl overwrites ltr and vice versa
+      if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* rtl */])()) cmds = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, commandList.ltr, commandList.rtl);else cmds = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, commandList.rtl, commandList.ltr);
+    }
+    command = cmds[keyCode];
+
+    fn = functions[command];
+    if (fn && typeof fn === 'function') {
+      // execute function  if exists
+      var returnValue = fn.apply();
+      if (functions.handled || typeof functions.handled === 'function') {
+        // execute function when event was handled
+        functions.handled(returnValue);
+      }
+    } else {
+      if (functions.unhandled || typeof functions.unhandled === 'function') {
+        // execute function when event was not handled
+        functions.unhandled();
+      }
+    }
+  },
+
+
+  /**
+   * Finds all focusable elements within the given `$element`
+   * @param {jQuery} $element - jQuery object to search within
+   * @return {jQuery} $focusable - all focusable elements within `$element`
+   */
+
+  findFocusable: findFocusable,
+
+  /**
+   * Returns the component name name
+   * @param {Object} component - Foundation component, e.g. Slider or Reveal
+   * @return String componentName
+   */
+
+  register: function (componentName, cmds) {
+    commands[componentName] = cmds;
+  },
+
+
+  // TODO9438: These references to Keyboard need to not require global. Will 'this' work in this context?
+  //
+  /**
+   * Traps the focus in the given element.
+   * @param  {jQuery} $element  jQuery object to trap the foucs into.
+   */
+  trapFocus: function ($element) {
+    var $focusable = findFocusable($element),
+        $firstFocusable = $focusable.eq(0),
+        $lastFocusable = $focusable.eq(-1);
+
+    $element.on('keydown.zf.trapfocus', function (event) {
+      if (event.target === $lastFocusable[0] && parseKey(event) === 'TAB') {
+        event.preventDefault();
+        $firstFocusable.focus();
+      } else if (event.target === $firstFocusable[0] && parseKey(event) === 'SHIFT_TAB') {
+        event.preventDefault();
+        $lastFocusable.focus();
+      }
+    });
+  },
+
+  /**
+   * Releases the trapped focus from the given element.
+   * @param  {jQuery} $element  jQuery object to release the focus for.
+   */
+  releaseFocus: function ($element) {
+    $element.off('keydown.zf.trapfocus');
+  }
+};
+
+/*
+ * Constants for easier comparing.
+ * Can be used like Foundation.parseKey(event) === Foundation.keys.SPACE
+ */
+function getKeyCodes(kcs) {
+  var k = {};
+  for (var kc in kcs) {
+    k[kcs[kc]] = kcs[kc];
+  }return k;
+}
+
+
+
+/***/ }),
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11073,187 +11254,6 @@ function parseStyleToObject(str) {
   }, {});
 
   return styleObject;
-}
-
-
-
-/***/ }),
-/* 4 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Keyboard; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
-/*******************************************
- *                                         *
- * This util was created by Marius Olbertz *
- * Please thank Marius on GitHub /owlbertz *
- * or the web http://www.mariusolbertz.de/ *
- *                                         *
- ******************************************/
-
-
-
-
-
-
-var keyCodes = {
-  9: 'TAB',
-  13: 'ENTER',
-  27: 'ESCAPE',
-  32: 'SPACE',
-  35: 'END',
-  36: 'HOME',
-  37: 'ARROW_LEFT',
-  38: 'ARROW_UP',
-  39: 'ARROW_RIGHT',
-  40: 'ARROW_DOWN'
-};
-
-var commands = {};
-
-// Functions pulled out to be referenceable from internals
-function findFocusable($element) {
-  if (!$element) {
-    return false;
-  }
-  return $element.find('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]').filter(function () {
-    if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).is(':visible') || __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).attr('tabindex') < 0) {
-      return false;
-    } //only have visible elements and those that have a tabindex greater or equal 0
-    return true;
-  });
-}
-
-function parseKey(event) {
-  var key = keyCodes[event.which || event.keyCode] || String.fromCharCode(event.which).toUpperCase();
-
-  // Remove un-printable characters, e.g. for `fromCharCode` calls for CTRL only events
-  key = key.replace(/\W+/, '');
-
-  if (event.shiftKey) key = 'SHIFT_' + key;
-  if (event.ctrlKey) key = 'CTRL_' + key;
-  if (event.altKey) key = 'ALT_' + key;
-
-  // Remove trailing underscore, in case only modifiers were used (e.g. only `CTRL_ALT`)
-  key = key.replace(/_$/, '');
-
-  return key;
-}
-
-var Keyboard = {
-  keys: getKeyCodes(keyCodes),
-
-  /**
-   * Parses the (keyboard) event and returns a String that represents its key
-   * Can be used like Foundation.parseKey(event) === Foundation.keys.SPACE
-   * @param {Event} event - the event generated by the event handler
-   * @return String key - String that represents the key pressed
-   */
-  parseKey: parseKey,
-
-  /**
-   * Handles the given (keyboard) event
-   * @param {Event} event - the event generated by the event handler
-   * @param {String} component - Foundation component's name, e.g. Slider or Reveal
-   * @param {Objects} functions - collection of functions that are to be executed
-   */
-  handleKey: function (event, component, functions) {
-    var commandList = commands[component],
-        keyCode = this.parseKey(event),
-        cmds,
-        command,
-        fn;
-
-    if (!commandList) return console.warn('Component not defined!');
-
-    if (typeof commandList.ltr === 'undefined') {
-      // this component does not differentiate between ltr and rtl
-      cmds = commandList; // use plain list
-    } else {
-      // merge ltr and rtl: if document is rtl, rtl overwrites ltr and vice versa
-      if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* rtl */])()) cmds = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, commandList.ltr, commandList.rtl);else cmds = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, commandList.rtl, commandList.ltr);
-    }
-    command = cmds[keyCode];
-
-    fn = functions[command];
-    if (fn && typeof fn === 'function') {
-      // execute function  if exists
-      var returnValue = fn.apply();
-      if (functions.handled || typeof functions.handled === 'function') {
-        // execute function when event was handled
-        functions.handled(returnValue);
-      }
-    } else {
-      if (functions.unhandled || typeof functions.unhandled === 'function') {
-        // execute function when event was not handled
-        functions.unhandled();
-      }
-    }
-  },
-
-
-  /**
-   * Finds all focusable elements within the given `$element`
-   * @param {jQuery} $element - jQuery object to search within
-   * @return {jQuery} $focusable - all focusable elements within `$element`
-   */
-
-  findFocusable: findFocusable,
-
-  /**
-   * Returns the component name name
-   * @param {Object} component - Foundation component, e.g. Slider or Reveal
-   * @return String componentName
-   */
-
-  register: function (componentName, cmds) {
-    commands[componentName] = cmds;
-  },
-
-
-  // TODO9438: These references to Keyboard need to not require global. Will 'this' work in this context?
-  //
-  /**
-   * Traps the focus in the given element.
-   * @param  {jQuery} $element  jQuery object to trap the foucs into.
-   */
-  trapFocus: function ($element) {
-    var $focusable = findFocusable($element),
-        $firstFocusable = $focusable.eq(0),
-        $lastFocusable = $focusable.eq(-1);
-
-    $element.on('keydown.zf.trapfocus', function (event) {
-      if (event.target === $lastFocusable[0] && parseKey(event) === 'TAB') {
-        event.preventDefault();
-        $firstFocusable.focus();
-      } else if (event.target === $firstFocusable[0] && parseKey(event) === 'SHIFT_TAB') {
-        event.preventDefault();
-        $lastFocusable.focus();
-      }
-    });
-  },
-
-  /**
-   * Releases the trapped focus from the given element.
-   * @param  {jQuery} $element  jQuery object to release the focus for.
-   */
-  releaseFocus: function ($element) {
-    $element.off('keydown.zf.trapfocus');
-  }
-};
-
-/*
- * Constants for easier comparing.
- * Can be used like Foundation.parseKey(event) === Foundation.keys.SPACE
- */
-function getKeyCodes(kcs) {
-  var k = {};
-  for (var kc in kcs) {
-    k[kcs[kc]] = kcs[kc];
-  }return k;
 }
 
 
@@ -11783,9 +11783,9 @@ function GetOffsets(element, anchor, position, vOffset, hOffset, isOverflow) {
   console.log("NOTE: GetOffsets is deprecated in favor of GetExplicitOffsets and will be removed in 6.5");
   switch (position) {
     case 'top':
-      return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["b" /* rtl */])() ? GetExplicitOffsets(element, anchor, 'top', 'left', vOffset, hOffset, isOverflow) : GetExplicitOffsets(element, anchor, 'top', 'right', vOffset, hOffset, isOverflow);
+      return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["a" /* rtl */])() ? GetExplicitOffsets(element, anchor, 'top', 'left', vOffset, hOffset, isOverflow) : GetExplicitOffsets(element, anchor, 'top', 'right', vOffset, hOffset, isOverflow);
     case 'bottom':
-      return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["b" /* rtl */])() ? GetExplicitOffsets(element, anchor, 'bottom', 'left', vOffset, hOffset, isOverflow) : GetExplicitOffsets(element, anchor, 'bottom', 'right', vOffset, hOffset, isOverflow);
+      return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["a" /* rtl */])() ? GetExplicitOffsets(element, anchor, 'bottom', 'left', vOffset, hOffset, isOverflow) : GetExplicitOffsets(element, anchor, 'bottom', 'right', vOffset, hOffset, isOverflow);
     case 'center top':
       return GetExplicitOffsets(element, anchor, 'top', 'center', vOffset, hOffset, isOverflow);
     case 'center bottom':
@@ -11818,7 +11818,7 @@ function GetOffsets(element, anchor, position, vOffset, hOffset, isOverflow) {
       break;
     default:
       return {
-        left: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["b" /* rtl */])() ? $anchorDims.offset.left - $eleDims.width + $anchorDims.width - hOffset : $anchorDims.offset.left + hOffset,
+        left: __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__foundation_util_core__["a" /* rtl */])() ? $anchorDims.offset.left - $eleDims.width + $anchorDims.width - hOffset : $anchorDims.offset.left + hOffset,
         top: $anchorDims.offset.top + $anchorDims.height + vOffset
       };
 
@@ -12013,10 +12013,180 @@ var Nest = {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Touch; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//**************************************************
+//**Work inspired by multiple jquery swipe plugins**
+//**Done by Yohai Ararat ***************************
+//**************************************************
+
+
+
+var Touch = {};
+
+var startPosX,
+    startPosY,
+    startTime,
+    elapsedTime,
+    isMoving = false;
+
+function onTouchEnd() {
+  //  alert(this);
+  this.removeEventListener('touchmove', onTouchMove);
+  this.removeEventListener('touchend', onTouchEnd);
+  isMoving = false;
+}
+
+function onTouchMove(e) {
+  if (__WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.preventDefault) {
+    e.preventDefault();
+  }
+  if (isMoving) {
+    var x = e.touches[0].pageX;
+    var y = e.touches[0].pageY;
+    var dx = startPosX - x;
+    var dy = startPosY - y;
+    var dir;
+    elapsedTime = new Date().getTime() - startTime;
+    if (Math.abs(dx) >= __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.moveThreshold && elapsedTime <= __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.timeThreshold) {
+      dir = dx > 0 ? 'left' : 'right';
+    }
+    // else if(Math.abs(dy) >= $.spotSwipe.moveThreshold && elapsedTime <= $.spotSwipe.timeThreshold) {
+    //   dir = dy > 0 ? 'down' : 'up';
+    // }
+    if (dir) {
+      e.preventDefault();
+      onTouchEnd.call(this);
+      __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).trigger('swipe', dir).trigger('swipe' + dir);
+    }
+  }
+}
+
+function onTouchStart(e) {
+  if (e.touches.length == 1) {
+    startPosX = e.touches[0].pageX;
+    startPosY = e.touches[0].pageY;
+    isMoving = true;
+    startTime = new Date().getTime();
+    this.addEventListener('touchmove', onTouchMove, false);
+    this.addEventListener('touchend', onTouchEnd, false);
+  }
+}
+
+function init() {
+  this.addEventListener && this.addEventListener('touchstart', onTouchStart, false);
+}
+
+function teardown() {
+  this.removeEventListener('touchstart', onTouchStart);
+}
+
+var SpotSwipe = function () {
+  function SpotSwipe($) {
+    _classCallCheck(this, SpotSwipe);
+
+    this.version = '1.0.0';
+    this.enabled = 'ontouchstart' in document.documentElement;
+    this.preventDefault = false;
+    this.moveThreshold = 75;
+    this.timeThreshold = 200;
+    this.$ = $;
+    this._init();
+  }
+
+  _createClass(SpotSwipe, [{
+    key: '_init',
+    value: function _init() {
+      var $ = this.$;
+      $.event.special.swipe = { setup: init };
+
+      $.each(['left', 'up', 'down', 'right'], function () {
+        $.event.special['swipe' + this] = { setup: function () {
+            $(this).on('swipe', $.noop);
+          } };
+      });
+    }
+  }]);
+
+  return SpotSwipe;
+}();
+
+/****************************************************
+ * As far as I can tell, both setupSpotSwipe and    *
+ * setupTouchHandler should be idempotent,          *
+ * because they directly replace functions &        *
+ * values, and do not add event handlers directly.  *
+ ****************************************************/
+
+Touch.setupSpotSwipe = function ($) {
+  $.spotSwipe = new SpotSwipe($);
+};
+
+/****************************************************
+ * Method for adding pseudo drag events to elements *
+ ***************************************************/
+Touch.setupTouchHandler = function ($) {
+  $.fn.addTouch = function () {
+    this.each(function (i, el) {
+      $(el).bind('touchstart touchmove touchend touchcancel', function () {
+        //we pass the original event object because the jQuery event
+        //object is normalized to w3c specs and does not provide the TouchList
+        handleTouch(event);
+      });
+    });
+
+    var handleTouch = function (event) {
+      var touches = event.changedTouches,
+          first = touches[0],
+          eventTypes = {
+        touchstart: 'mousedown',
+        touchmove: 'mousemove',
+        touchend: 'mouseup'
+      },
+          type = eventTypes[event.type],
+          simulatedEvent;
+
+      if ('MouseEvent' in window && typeof window.MouseEvent === 'function') {
+        simulatedEvent = new window.MouseEvent(type, {
+          'bubbles': true,
+          'cancelable': true,
+          'screenX': first.screenX,
+          'screenY': first.screenY,
+          'clientX': first.clientX,
+          'clientY': first.clientY
+        });
+      } else {
+        simulatedEvent = document.createEvent('MouseEvent');
+        simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY, false, false, false, false, 0 /*left*/, null);
+      }
+      first.target.dispatchEvent(simulatedEvent);
+    };
+  };
+};
+
+Touch.init = function ($) {
+  if (typeof $.spotSwipe === 'undefined') {
+    Touch.setupSpotSwipe($);
+    Touch.setupTouchHandler($);
+  }
+};
+
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Accordion; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
 
@@ -12091,7 +12261,7 @@ var Accordion = function (_Plugin) {
       this.$tabs.each(function (idx, el) {
         var $el = __WEBPACK_IMPORTED_MODULE_0_jquery___default()(el),
             $content = $el.children('[data-tab-content]'),
-            id = $content[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* GetYoDigits */])(6, 'accordion'),
+            id = $content[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */])(6, 'accordion'),
             linkId = el.id || id + '-label';
 
         $el.find('a:first').attr({
@@ -12387,14 +12557,14 @@ Accordion.defaults = {
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AccordionMenu; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_nest__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_plugin__ = __webpack_require__(2);
@@ -12479,10 +12649,10 @@ var AccordionMenu = function (_Plugin) {
 
       this.$menuLinks = this.$element.find('.is-accordion-submenu-parent');
       this.$menuLinks.each(function () {
-        var linkId = this.id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'acc-menu-link'),
+        var linkId = this.id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'acc-menu-link'),
             $elem = __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this),
             $sub = $elem.children('[data-submenu]'),
-            subId = $sub[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'acc-menu'),
+            subId = $sub[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'acc-menu'),
             isActive = $sub.hasClass('is-active');
 
         if (_this.options.submenuToggle) {
@@ -12773,14 +12943,14 @@ AccordionMenu.defaults = {
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Drilldown; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_nest__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_box__ = __webpack_require__(7);
@@ -12870,7 +13040,7 @@ var Drilldown = function (_Plugin) {
       this.$submenuAnchors = this.$element.find('li.is-drilldown-submenu-parent').children('a');
       this.$submenus = this.$submenuAnchors.parent('li').children('[data-submenu]').attr('role', 'group');
       this.$menuItems = this.$element.find('li').not('.js-drilldown-back').attr('role', 'treeitem').find('a');
-      this.$element.attr('data-mutate', this.$element.attr('data-drilldown') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'drilldown'));
+      this.$element.attr('data-mutate', this.$element.attr('data-drilldown') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'drilldown'));
 
       this._prepareMenu();
       this._registerEvents();
@@ -13383,14 +13553,14 @@ Drilldown.defaults = {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return DropdownMenu; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_nest__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_box__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_core__ = __webpack_require__(1);
@@ -13476,7 +13646,7 @@ var DropdownMenu = function (_Plugin) {
       this.$tabs.find('ul.is-dropdown-submenu').addClass(this.options.verticalClass);
 
       if (this.options.alignment === 'auto') {
-        if (this.$element.hasClass(this.options.rightClass) || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__foundation_util_core__["b" /* rtl */])() || this.$element.parents('.top-bar-right').is('*')) {
+        if (this.$element.hasClass(this.options.rightClass) || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__foundation_util_core__["a" /* rtl */])() || this.$element.parents('.top-bar-right').is('*')) {
           this.options.alignment = 'right';
           subs.addClass('opens-left');
         } else {
@@ -13501,7 +13671,7 @@ var DropdownMenu = function (_Plugin) {
   }, {
     key: '_isRtl',
     value: function _isRtl() {
-      return this.$element.hasClass('align-right') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__foundation_util_core__["b" /* rtl */])() && !this.$element.hasClass('align-left');
+      return this.$element.hasClass('align-right') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_4__foundation_util_core__["a" /* rtl */])() && !this.$element.hasClass('align-left');
     }
 
     /**
@@ -13912,14 +14082,443 @@ DropdownMenu.defaults = {
 
 
 /***/ }),
-/* 14 */
+/* 15 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Positionable; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_plugin__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+
+
+
+
+var POSITIONS = ['left', 'right', 'top', 'bottom'];
+var VERTICAL_ALIGNMENTS = ['top', 'bottom', 'center'];
+var HORIZONTAL_ALIGNMENTS = ['left', 'right', 'center'];
+
+var ALIGNMENTS = {
+  'left': VERTICAL_ALIGNMENTS,
+  'right': VERTICAL_ALIGNMENTS,
+  'top': HORIZONTAL_ALIGNMENTS,
+  'bottom': HORIZONTAL_ALIGNMENTS
+};
+
+function nextItem(item, array) {
+  var currentIdx = array.indexOf(item);
+  if (currentIdx === array.length - 1) {
+    return array[0];
+  } else {
+    return array[currentIdx + 1];
+  }
+}
+
+var Positionable = function (_Plugin) {
+  _inherits(Positionable, _Plugin);
+
+  function Positionable() {
+    _classCallCheck(this, Positionable);
+
+    return _possibleConstructorReturn(this, (Positionable.__proto__ || Object.getPrototypeOf(Positionable)).apply(this, arguments));
+  }
+
+  _createClass(Positionable, [{
+    key: '_init',
+
+    /**
+     * Abstract class encapsulating the tether-like explicit positioning logic
+     * including repositioning based on overlap.
+     * Expects classes to define defaults for vOffset, hOffset, position,
+     * alignment, allowOverlap, and allowBottomOverlap. They can do this by
+     * extending the defaults, or (for now recommended due to the way docs are
+     * generated) by explicitly declaring them.
+     *
+     **/
+
+    value: function _init() {
+      this.triedPositions = {};
+      this.position = this.options.position === 'auto' ? this._getDefaultPosition() : this.options.position;
+      this.alignment = this.options.alignment === 'auto' ? this._getDefaultAlignment() : this.options.alignment;
+    }
+  }, {
+    key: '_getDefaultPosition',
+    value: function _getDefaultPosition() {
+      return 'bottom';
+    }
+  }, {
+    key: '_getDefaultAlignment',
+    value: function _getDefaultAlignment() {
+      switch (this.position) {
+        case 'bottom':
+        case 'top':
+          return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* rtl */])() ? 'right' : 'left';
+        case 'left':
+        case 'right':
+          return 'bottom';
+      }
+    }
+
+    /**
+     * Adjusts the positionable possible positions by iterating through alignments
+     * and positions.
+     * @function
+     * @private
+     */
+
+  }, {
+    key: '_reposition',
+    value: function _reposition() {
+      if (this._alignmentsExhausted(this.position)) {
+        this.position = nextItem(this.position, POSITIONS);
+        this.alignment = ALIGNMENTS[this.position][0];
+      } else {
+        this._realign();
+      }
+    }
+
+    /**
+     * Adjusts the dropdown pane possible positions by iterating through alignments
+     * on the current position.
+     * @function
+     * @private
+     */
+
+  }, {
+    key: '_realign',
+    value: function _realign() {
+      this._addTriedPosition(this.position, this.alignment);
+      this.alignment = nextItem(this.alignment, ALIGNMENTS[this.position]);
+    }
+  }, {
+    key: '_addTriedPosition',
+    value: function _addTriedPosition(position, alignment) {
+      this.triedPositions[position] = this.triedPositions[position] || [];
+      this.triedPositions[position].push(alignment);
+    }
+  }, {
+    key: '_positionsExhausted',
+    value: function _positionsExhausted() {
+      var isExhausted = true;
+      for (var i = 0; i < POSITIONS.length; i++) {
+        isExhausted = isExhausted && this._alignmentsExhausted(POSITIONS[i]);
+      }
+      return isExhausted;
+    }
+  }, {
+    key: '_alignmentsExhausted',
+    value: function _alignmentsExhausted(position) {
+      return this.triedPositions[position] && this.triedPositions[position].length == ALIGNMENTS[position].length;
+    }
+
+    // When we're trying to center, we don't want to apply offset that's going to
+    // take us just off center, so wrap around to return 0 for the appropriate
+    // offset in those alignments.  TODO: Figure out if we want to make this
+    // configurable behavior... it feels more intuitive, especially for tooltips, but
+    // it's possible someone might actually want to start from center and then nudge
+    // slightly off.
+
+  }, {
+    key: '_getVOffset',
+    value: function _getVOffset() {
+      return this.options.vOffset;
+    }
+  }, {
+    key: '_getHOffset',
+    value: function _getHOffset() {
+      return this.options.hOffset;
+    }
+  }, {
+    key: '_setPosition',
+    value: function _setPosition($anchor, $element, $parent) {
+      if ($anchor.attr('aria-expanded') === 'false') {
+        return false;
+      }
+      var $eleDims = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetDimensions($element),
+          $anchorDims = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetDimensions($anchor);
+
+      $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
+
+      if (!this.options.allowOverlap) {
+        var overlaps = {};
+        var minOverlap = 100000000;
+        // default coordinates to how we start, in case we can't figure out better
+        var minCoordinates = { position: this.position, alignment: this.alignment };
+        while (!this._positionsExhausted()) {
+          var overlap = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].OverlapArea($element, $parent, false, false, this.options.allowBottomOverlap);
+          if (overlap === 0) {
+            return;
+          }
+
+          if (overlap < minOverlap) {
+            minOverlap = overlap;
+            minCoordinates = { position: this.position, alignment: this.alignment };
+          }
+
+          this._reposition();
+
+          $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
+        }
+        // If we get through the entire loop, there was no non-overlapping
+        // position available. Pick the version with least overlap.
+        this.position = minCoordinates.position;
+        this.alignment = minCoordinates.alignment;
+        $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
+      }
+    }
+  }]);
+
+  return Positionable;
+}(__WEBPACK_IMPORTED_MODULE_1__foundation_plugin__["a" /* Plugin */]);
+
+Positionable.defaults = {
+  /**
+   * Position of positionable relative to anchor. Can be left, right, bottom, top, or auto.
+   * @option
+   * @type {string}
+   * @default 'auto'
+   */
+  position: 'auto',
+  /**
+   * Alignment of positionable relative to anchor. Can be left, right, bottom, top, center, or auto.
+   * @option
+   * @type {string}
+   * @default 'auto'
+   */
+  alignment: 'auto',
+  /**
+   * Allow overlap of container/window. If false, dropdown positionable first
+   * try to position as defined by data-position and data-alignment, but
+   * reposition if it would cause an overflow.
+   * @option
+   * @type {boolean}
+   * @default false
+   */
+  allowOverlap: false,
+  /**
+   * Allow overlap of only the bottom of the container. This is the most common
+   * behavior for dropdowns, allowing the dropdown to extend the bottom of the
+   * screen but not otherwise influence or break out of the container.
+   * @option
+   * @type {boolean}
+   * @default true
+   */
+  allowBottomOverlap: true,
+  /**
+   * Number of pixels the positionable should be separated vertically from anchor
+   * @option
+   * @type {number}
+   * @default 0
+   */
+  vOffset: 0,
+  /**
+   * Number of pixels the positionable should be separated horizontally from anchor
+   * @option
+   * @type {number}
+   * @default 0
+   */
+  hOffset: 0
+};
+
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SmoothScroll; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_plugin__ = __webpack_require__(2);
+
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+
+
+
+
+/**
+ * SmoothScroll module.
+ * @module foundation.smooth-scroll
+ */
+
+var SmoothScroll = function (_Plugin) {
+    _inherits(SmoothScroll, _Plugin);
+
+    function SmoothScroll() {
+        _classCallCheck(this, SmoothScroll);
+
+        return _possibleConstructorReturn(this, (SmoothScroll.__proto__ || Object.getPrototypeOf(SmoothScroll)).apply(this, arguments));
+    }
+
+    _createClass(SmoothScroll, [{
+        key: '_setup',
+
+        /**
+         * Creates a new instance of SmoothScroll.
+         * @class
+         * @name SmoothScroll
+         * @fires SmoothScroll#init
+         * @param {Object} element - jQuery object to add the trigger to.
+         * @param {Object} options - Overrides to the default plugin settings.
+         */
+        value: function _setup(element, options) {
+            this.$element = element;
+            this.options = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, SmoothScroll.defaults, this.$element.data(), options);
+            this.className = 'SmoothScroll'; // ie9 back compat
+
+            this._init();
+        }
+
+        /**
+         * Initialize the SmoothScroll plugin
+         * @private
+         */
+
+    }, {
+        key: '_init',
+        value: function _init() {
+            var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, 'smooth-scroll');
+            var _this = this;
+            this.$element.attr({
+                'id': id
+            });
+
+            this._events();
+        }
+
+        /**
+         * Initializes events for SmoothScroll.
+         * @private
+         */
+
+    }, {
+        key: '_events',
+        value: function _events() {
+            var _this = this;
+
+            // click handler function.
+            var handleLinkClick = function (e) {
+                // exit function if the event source isn't coming from an anchor with href attribute starts with '#'
+                if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).is('a[href^="#"]')) {
+                    return false;
+                }
+
+                var arrival = this.getAttribute('href');
+
+                _this._inTransition = true;
+
+                SmoothScroll.scrollToLoc(arrival, _this.options, function () {
+                    _this._inTransition = false;
+                });
+
+                e.preventDefault();
+            };
+
+            this.$element.on('click.zf.smoothScroll', handleLinkClick);
+            this.$element.on('click.zf.smoothScroll', 'a[href^="#"]', handleLinkClick);
+        }
+
+        /**
+         * Function to scroll to a given location on the page.
+         * @param {String} loc - A properly formatted jQuery id selector. Example: '#foo'
+         * @param {Object} options - The options to use.
+         * @param {Function} callback - The callback function.
+         * @static
+         * @function
+         */
+
+    }], [{
+        key: 'scrollToLoc',
+        value: function scrollToLoc(loc) {
+            var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : SmoothScroll.defaults;
+            var callback = arguments[2];
+
+            // Do nothing if target does not exist to prevent errors
+            if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(loc).length) {
+                return false;
+            }
+
+            var scrollPos = Math.round(__WEBPACK_IMPORTED_MODULE_0_jquery___default()(loc).offset().top - options.threshold / 2 - options.offset);
+
+            __WEBPACK_IMPORTED_MODULE_0_jquery___default()('html, body').stop(true).animate({ scrollTop: scrollPos }, options.animationDuration, options.animationEasing, function () {
+                if (callback && typeof callback == "function") {
+                    callback();
+                }
+            });
+        }
+    }]);
+
+    return SmoothScroll;
+}(__WEBPACK_IMPORTED_MODULE_2__foundation_plugin__["a" /* Plugin */]);
+
+/**
+ * Default settings for plugin.
+ */
+
+
+SmoothScroll.defaults = {
+    /**
+     * Amount of time, in ms, the animated scrolling should take between locations.
+     * @option
+     * @type {number}
+     * @default 500
+     */
+    animationDuration: 500,
+    /**
+     * Animation style to use when scrolling between locations. Can be `'swing'` or `'linear'`.
+     * @option
+     * @type {string}
+     * @default 'linear'
+     * @see {@link https://api.jquery.com/animate|Jquery animate}
+     */
+    animationEasing: 'linear',
+    /**
+     * Number of pixels to use as a marker for location changes.
+     * @option
+     * @type {number}
+     * @default 50
+     */
+    threshold: 50,
+    /**
+     * Number of pixels to offset the scroll of the page on item click if using a sticky nav bar.
+     * @option
+     * @type {number}
+     * @default 0
+     */
+    offset: 0
+};
+
+
+
+/***/ }),
+/* 17 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Tabs; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_imageLoader__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
 
@@ -14457,428 +15056,209 @@ Tabs.defaults = {
 
 
 /***/ }),
-/* 15 */
+/* 18 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Positionable; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
-
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-
-
-
-
-var POSITIONS = ['left', 'right', 'top', 'bottom'];
-var VERTICAL_ALIGNMENTS = ['top', 'bottom', 'center'];
-var HORIZONTAL_ALIGNMENTS = ['left', 'right', 'center'];
-
-var ALIGNMENTS = {
-  'left': VERTICAL_ALIGNMENTS,
-  'right': VERTICAL_ALIGNMENTS,
-  'top': HORIZONTAL_ALIGNMENTS,
-  'bottom': HORIZONTAL_ALIGNMENTS
-};
-
-function nextItem(item, array) {
-  var currentIdx = array.indexOf(item);
-  if (currentIdx === array.length - 1) {
-    return array[0];
-  } else {
-    return array[currentIdx + 1];
-  }
-}
-
-var Positionable = function (_Plugin) {
-  _inherits(Positionable, _Plugin);
-
-  function Positionable() {
-    _classCallCheck(this, Positionable);
-
-    return _possibleConstructorReturn(this, (Positionable.__proto__ || Object.getPrototypeOf(Positionable)).apply(this, arguments));
-  }
-
-  _createClass(Positionable, [{
-    key: '_init',
-
-    /**
-     * Abstract class encapsulating the tether-like explicit positioning logic
-     * including repositioning based on overlap.
-     * Expects classes to define defaults for vOffset, hOffset, position,
-     * alignment, allowOverlap, and allowBottomOverlap. They can do this by
-     * extending the defaults, or (for now recommended due to the way docs are
-     * generated) by explicitly declaring them.
-     *
-     **/
-
-    value: function _init() {
-      this.triedPositions = {};
-      this.position = this.options.position === 'auto' ? this._getDefaultPosition() : this.options.position;
-      this.alignment = this.options.alignment === 'auto' ? this._getDefaultAlignment() : this.options.alignment;
-    }
-  }, {
-    key: '_getDefaultPosition',
-    value: function _getDefaultPosition() {
-      return 'bottom';
-    }
-  }, {
-    key: '_getDefaultAlignment',
-    value: function _getDefaultAlignment() {
-      switch (this.position) {
-        case 'bottom':
-        case 'top':
-          return __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* rtl */])() ? 'right' : 'left';
-        case 'left':
-        case 'right':
-          return 'bottom';
-      }
-    }
-
-    /**
-     * Adjusts the positionable possible positions by iterating through alignments
-     * and positions.
-     * @function
-     * @private
-     */
-
-  }, {
-    key: '_reposition',
-    value: function _reposition() {
-      if (this._alignmentsExhausted(this.position)) {
-        this.position = nextItem(this.position, POSITIONS);
-        this.alignment = ALIGNMENTS[this.position][0];
-      } else {
-        this._realign();
-      }
-    }
-
-    /**
-     * Adjusts the dropdown pane possible positions by iterating through alignments
-     * on the current position.
-     * @function
-     * @private
-     */
-
-  }, {
-    key: '_realign',
-    value: function _realign() {
-      this._addTriedPosition(this.position, this.alignment);
-      this.alignment = nextItem(this.alignment, ALIGNMENTS[this.position]);
-    }
-  }, {
-    key: '_addTriedPosition',
-    value: function _addTriedPosition(position, alignment) {
-      this.triedPositions[position] = this.triedPositions[position] || [];
-      this.triedPositions[position].push(alignment);
-    }
-  }, {
-    key: '_positionsExhausted',
-    value: function _positionsExhausted() {
-      var isExhausted = true;
-      for (var i = 0; i < POSITIONS.length; i++) {
-        isExhausted = isExhausted && this._alignmentsExhausted(POSITIONS[i]);
-      }
-      return isExhausted;
-    }
-  }, {
-    key: '_alignmentsExhausted',
-    value: function _alignmentsExhausted(position) {
-      return this.triedPositions[position] && this.triedPositions[position].length == ALIGNMENTS[position].length;
-    }
-
-    // When we're trying to center, we don't want to apply offset that's going to
-    // take us just off center, so wrap around to return 0 for the appropriate
-    // offset in those alignments.  TODO: Figure out if we want to make this
-    // configurable behavior... it feels more intuitive, especially for tooltips, but
-    // it's possible someone might actually want to start from center and then nudge
-    // slightly off.
-
-  }, {
-    key: '_getVOffset',
-    value: function _getVOffset() {
-      return this.options.vOffset;
-    }
-  }, {
-    key: '_getHOffset',
-    value: function _getHOffset() {
-      return this.options.hOffset;
-    }
-  }, {
-    key: '_setPosition',
-    value: function _setPosition($anchor, $element, $parent) {
-      if ($anchor.attr('aria-expanded') === 'false') {
-        return false;
-      }
-      var $eleDims = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetDimensions($element),
-          $anchorDims = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetDimensions($anchor);
-
-      $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
-
-      if (!this.options.allowOverlap) {
-        var overlaps = {};
-        var minOverlap = 100000000;
-        // default coordinates to how we start, in case we can't figure out better
-        var minCoordinates = { position: this.position, alignment: this.alignment };
-        while (!this._positionsExhausted()) {
-          var overlap = __WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].OverlapArea($element, $parent, false, false, this.options.allowBottomOverlap);
-          if (overlap === 0) {
-            return;
-          }
-
-          if (overlap < minOverlap) {
-            minOverlap = overlap;
-            minCoordinates = { position: this.position, alignment: this.alignment };
-          }
-
-          this._reposition();
-
-          $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
-        }
-        // If we get through the entire loop, there was no non-overlapping
-        // position available. Pick the version with least overlap.
-        this.position = minCoordinates.position;
-        this.alignment = minCoordinates.alignment;
-        $element.offset(__WEBPACK_IMPORTED_MODULE_0__foundation_util_box__["a" /* Box */].GetExplicitOffsets($element, $anchor, this.position, this.alignment, this._getVOffset(), this._getHOffset()));
-      }
-    }
-  }]);
-
-  return Positionable;
-}(__WEBPACK_IMPORTED_MODULE_1__foundation_plugin__["a" /* Plugin */]);
-
-Positionable.defaults = {
-  /**
-   * Position of positionable relative to anchor. Can be left, right, bottom, top, or auto.
-   * @option
-   * @type {string}
-   * @default 'auto'
-   */
-  position: 'auto',
-  /**
-   * Alignment of positionable relative to anchor. Can be left, right, bottom, top, center, or auto.
-   * @option
-   * @type {string}
-   * @default 'auto'
-   */
-  alignment: 'auto',
-  /**
-   * Allow overlap of container/window. If false, dropdown positionable first
-   * try to position as defined by data-position and data-alignment, but
-   * reposition if it would cause an overflow.
-   * @option
-   * @type {boolean}
-   * @default false
-   */
-  allowOverlap: false,
-  /**
-   * Allow overlap of only the bottom of the container. This is the most common
-   * behavior for dropdowns, allowing the dropdown to extend the bottom of the
-   * screen but not otherwise influence or break out of the container.
-   * @option
-   * @type {boolean}
-   * @default true
-   */
-  allowBottomOverlap: true,
-  /**
-   * Number of pixels the positionable should be separated vertically from anchor
-   * @option
-   * @type {number}
-   * @default 0
-   */
-  vOffset: 0,
-  /**
-   * Number of pixels the positionable should be separated horizontally from anchor
-   * @option
-   * @type {number}
-   * @default 0
-   */
-  hOffset: 0
-};
-
-
-
-/***/ }),
-/* 16 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Touch; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Timer; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-//**************************************************
-//**Work inspired by multiple jquery swipe plugins**
-//**Done by Yohai Ararat ***************************
-//**************************************************
 
 
 
-var Touch = {};
 
-var startPosX,
-    startPosY,
-    startTime,
-    elapsedTime,
-    isMoving = false;
+function Timer(elem, options, cb) {
+  var _this = this,
+      duration = options.duration,
+      //options is an object for easily adding features later.
+  nameSpace = Object.keys(elem.data())[0] || 'timer',
+      remain = -1,
+      start,
+      timer;
 
-function onTouchEnd() {
-  //  alert(this);
-  this.removeEventListener('touchmove', onTouchMove);
-  this.removeEventListener('touchend', onTouchEnd);
-  isMoving = false;
-}
+  this.isPaused = false;
 
-function onTouchMove(e) {
-  if (__WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.preventDefault) {
-    e.preventDefault();
-  }
-  if (isMoving) {
-    var x = e.touches[0].pageX;
-    var y = e.touches[0].pageY;
-    var dx = startPosX - x;
-    var dy = startPosY - y;
-    var dir;
-    elapsedTime = new Date().getTime() - startTime;
-    if (Math.abs(dx) >= __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.moveThreshold && elapsedTime <= __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.spotSwipe.timeThreshold) {
-      dir = dx > 0 ? 'left' : 'right';
-    }
-    // else if(Math.abs(dy) >= $.spotSwipe.moveThreshold && elapsedTime <= $.spotSwipe.timeThreshold) {
-    //   dir = dy > 0 ? 'down' : 'up';
-    // }
-    if (dir) {
-      e.preventDefault();
-      onTouchEnd.call(this);
-      __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).trigger('swipe', dir).trigger('swipe' + dir);
-    }
-  }
-}
-
-function onTouchStart(e) {
-  if (e.touches.length == 1) {
-    startPosX = e.touches[0].pageX;
-    startPosY = e.touches[0].pageY;
-    isMoving = true;
-    startTime = new Date().getTime();
-    this.addEventListener('touchmove', onTouchMove, false);
-    this.addEventListener('touchend', onTouchEnd, false);
-  }
-}
-
-function init() {
-  this.addEventListener && this.addEventListener('touchstart', onTouchStart, false);
-}
-
-function teardown() {
-  this.removeEventListener('touchstart', onTouchStart);
-}
-
-var SpotSwipe = function () {
-  function SpotSwipe($) {
-    _classCallCheck(this, SpotSwipe);
-
-    this.version = '1.0.0';
-    this.enabled = 'ontouchstart' in document.documentElement;
-    this.preventDefault = false;
-    this.moveThreshold = 75;
-    this.timeThreshold = 200;
-    this.$ = $;
-    this._init();
-  }
-
-  _createClass(SpotSwipe, [{
-    key: '_init',
-    value: function _init() {
-      var $ = this.$;
-      $.event.special.swipe = { setup: init };
-
-      $.each(['left', 'up', 'down', 'right'], function () {
-        $.event.special['swipe' + this] = { setup: function () {
-            $(this).on('swipe', $.noop);
-          } };
-      });
-    }
-  }]);
-
-  return SpotSwipe;
-}();
-
-/****************************************************
- * As far as I can tell, both setupSpotSwipe and    *
- * setupTouchHandler should be idempotent,          *
- * because they directly replace functions &        *
- * values, and do not add event handlers directly.  *
- ****************************************************/
-
-Touch.setupSpotSwipe = function ($) {
-  $.spotSwipe = new SpotSwipe($);
-};
-
-/****************************************************
- * Method for adding pseudo drag events to elements *
- ***************************************************/
-Touch.setupTouchHandler = function ($) {
-  $.fn.addTouch = function () {
-    this.each(function (i, el) {
-      $(el).bind('touchstart touchmove touchend touchcancel', function () {
-        //we pass the original event object because the jQuery event
-        //object is normalized to w3c specs and does not provide the TouchList
-        handleTouch(event);
-      });
-    });
-
-    var handleTouch = function (event) {
-      var touches = event.changedTouches,
-          first = touches[0],
-          eventTypes = {
-        touchstart: 'mousedown',
-        touchmove: 'mousemove',
-        touchend: 'mouseup'
-      },
-          type = eventTypes[event.type],
-          simulatedEvent;
-
-      if ('MouseEvent' in window && typeof window.MouseEvent === 'function') {
-        simulatedEvent = new window.MouseEvent(type, {
-          'bubbles': true,
-          'cancelable': true,
-          'screenX': first.screenX,
-          'screenY': first.screenY,
-          'clientX': first.clientX,
-          'clientY': first.clientY
-        });
-      } else {
-        simulatedEvent = document.createEvent('MouseEvent');
-        simulatedEvent.initMouseEvent(type, true, true, window, 1, first.screenX, first.screenY, first.clientX, first.clientY, false, false, false, false, 0 /*left*/, null);
-      }
-      first.target.dispatchEvent(simulatedEvent);
-    };
+  this.restart = function () {
+    remain = -1;
+    clearTimeout(timer);
+    this.start();
   };
-};
 
-Touch.init = function ($) {
-  if (typeof $.spotSwipe === 'undefined') {
-    Touch.setupSpotSwipe($);
-    Touch.setupTouchHandler($);
-  }
-};
+  this.start = function () {
+    this.isPaused = false;
+    // if(!elem.data('paused')){ return false; }//maybe implement this sanity check if used for other things.
+    clearTimeout(timer);
+    remain = remain <= 0 ? duration : remain;
+    elem.data('paused', false);
+    start = Date.now();
+    timer = setTimeout(function () {
+      if (options.infinite) {
+        _this.restart(); //rerun the timer.
+      }
+      if (cb && typeof cb === 'function') {
+        cb();
+      }
+    }, remain);
+    elem.trigger('timerstart.zf.' + nameSpace);
+  };
+
+  this.pause = function () {
+    this.isPaused = true;
+    //if(elem.data('paused')){ return false; }//maybe implement this sanity check if used for other things.
+    clearTimeout(timer);
+    elem.data('paused', true);
+    var end = Date.now();
+    remain = remain - (end - start);
+    elem.trigger('timerpaused.zf.' + nameSpace);
+  };
+}
 
 
 
 /***/ }),
-/* 17 */
+/* 19 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_core__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_box__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_imageLoader__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_keyboard__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__foundation_util_mediaQuery__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__foundation_util_motion__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__foundation_util_nest__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__foundation_util_timer__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__foundation_util_touch__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__foundation_util_triggers__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__foundation_abide__ = __webpack_require__(20);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__foundation_accordion__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__foundation_accordionMenu__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_15__foundation_drilldown__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_16__foundation_dropdown__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17__foundation_dropdownMenu__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_18__foundation_equalizer__ = __webpack_require__(23);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_19__foundation_interchange__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20__foundation_magellan__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_21__foundation_offcanvas__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_22__foundation_orbit__ = __webpack_require__(27);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_23__foundation_responsiveMenu__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_24__foundation_responsiveToggle__ = __webpack_require__(30);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_25__foundation_reveal__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_26__foundation_slider__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_27__foundation_smoothScroll__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_28__foundation_sticky__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_29__foundation_tabs__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_30__foundation_toggler__ = __webpack_require__(34);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_31__foundation_tooltip__ = __webpack_require__(35);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_32__foundation_responsiveAccordionTabs__ = __webpack_require__(28);
+
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].addToJquery(__WEBPACK_IMPORTED_MODULE_0_jquery___default.a);
+
+// Add Foundation Utils to Foundation global namespace for backwards
+// compatibility.
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].rtl = __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* rtl */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].GetYoDigits = __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].transitionend = __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["c" /* transitionend */];
+
+
+
+
+
+
+
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Box = __WEBPACK_IMPORTED_MODULE_3__foundation_util_box__["a" /* Box */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].onImagesLoaded = __WEBPACK_IMPORTED_MODULE_4__foundation_util_imageLoader__["a" /* onImagesLoaded */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Keyboard = __WEBPACK_IMPORTED_MODULE_5__foundation_util_keyboard__["a" /* Keyboard */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].MediaQuery = __WEBPACK_IMPORTED_MODULE_6__foundation_util_mediaQuery__["a" /* MediaQuery */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Motion = __WEBPACK_IMPORTED_MODULE_7__foundation_util_motion__["a" /* Motion */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Move = __WEBPACK_IMPORTED_MODULE_7__foundation_util_motion__["b" /* Move */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Nest = __WEBPACK_IMPORTED_MODULE_8__foundation_util_nest__["a" /* Nest */];
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].Timer = __WEBPACK_IMPORTED_MODULE_9__foundation_util_timer__["a" /* Timer */];
+
+// Touch and Triggers previously were almost purely sede effect driven,
+// so no // need to add it to Foundation, just init them.
+
+
+__WEBPACK_IMPORTED_MODULE_10__foundation_util_touch__["a" /* Touch */].init(__WEBPACK_IMPORTED_MODULE_0_jquery___default.a);
+
+
+__WEBPACK_IMPORTED_MODULE_11__foundation_util_triggers__["a" /* Triggers */].init(__WEBPACK_IMPORTED_MODULE_0_jquery___default.a, __WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */]);
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_12__foundation_abide__["a" /* Abide */], 'Abide');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_13__foundation_accordion__["a" /* Accordion */], 'Accordion');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_14__foundation_accordionMenu__["a" /* AccordionMenu */], 'AccordionMenu');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_15__foundation_drilldown__["a" /* Drilldown */], 'Drilldown');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_16__foundation_dropdown__["a" /* Dropdown */], 'Dropdown');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_17__foundation_dropdownMenu__["a" /* DropdownMenu */], 'DropdownMenu');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_18__foundation_equalizer__["a" /* Equalizer */], 'Equalizer');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_19__foundation_interchange__["a" /* Interchange */], 'Interchange');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_20__foundation_magellan__["a" /* Magellan */], 'Magellan');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_21__foundation_offcanvas__["a" /* OffCanvas */], 'OffCanvas');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_22__foundation_orbit__["a" /* Orbit */], 'Orbit');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_23__foundation_responsiveMenu__["a" /* ResponsiveMenu */], 'ResponsiveMenu');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_24__foundation_responsiveToggle__["a" /* ResponsiveToggle */], 'ResponsiveToggle');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_25__foundation_reveal__["a" /* Reveal */], 'Reveal');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_26__foundation_slider__["a" /* Slider */], 'Slider');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_27__foundation_smoothScroll__["a" /* SmoothScroll */], 'SmoothScroll');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_28__foundation_sticky__["a" /* Sticky */], 'Sticky');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_29__foundation_tabs__["a" /* Tabs */], 'Tabs');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_30__foundation_toggler__["a" /* Toggler */], 'Toggler');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_31__foundation_tooltip__["a" /* Tooltip */], 'Tooltip');
+
+
+__WEBPACK_IMPORTED_MODULE_1__foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_32__foundation_responsiveAccordionTabs__["a" /* ResponsiveAccordionTabs */], 'ResponsiveAccordionTabs');
+
+/***/ }),
+/* 20 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -15187,8 +15567,6 @@ var Abide = function (_Plugin) {
   }, {
     key: 'validateInput',
     value: function validateInput($el) {
-      var _this5 = this;
-
       var clearRequire = this.requiredCheck($el),
           validated = false,
           customValidator = true,
@@ -15234,14 +15612,12 @@ var Abide = function (_Plugin) {
         // Re-validate inputs that depend on this one with equalto
         var dependentElements = this.$element.find('[data-equalto="' + $el.attr('id') + '"]');
         if (dependentElements.length) {
-          (function () {
-            var _this = _this5;
-            dependentElements.each(function () {
-              if (__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).val()) {
-                _this.validateInput(__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this));
-              }
-            });
-          })();
+          var _this = this;
+          dependentElements.each(function () {
+            if (__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).val()) {
+              _this.validateInput(__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this));
+            }
+          });
         }
       }
 
@@ -15371,12 +15747,12 @@ var Abide = function (_Plugin) {
   }, {
     key: 'matchValidation',
     value: function matchValidation($el, validators, required) {
-      var _this6 = this;
+      var _this5 = this;
 
       required = required ? true : false;
 
       var clear = validators.split(' ').map(function (v) {
-        return _this6.options.validators[v]($el, required, $el.parent());
+        return _this5.options.validators[v]($el, required, $el.parent());
       });
       return clear.indexOf(false) === -1;
     }
@@ -15546,7 +15922,7 @@ Abide.defaults = {
 
 
 /***/ }),
-/* 18 */
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -15554,7 +15930,7 @@ Abide.defaults = {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(4);
 
 
 
@@ -15604,7 +15980,7 @@ var Foundation = {
    */
   registerPlugin: function (plugin, name) {
     var pluginName = name ? hyphenate(name) : functionName(plugin.constructor).toLowerCase();
-    plugin.uuid = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, pluginName);
+    plugin.uuid = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, pluginName);
 
     if (!plugin.$element.attr('data-' + pluginName)) {
       plugin.$element.attr('data-' + pluginName, plugin.uuid);
@@ -15903,14 +16279,14 @@ function hyphenate(str) {
 
 
 /***/ }),
-/* 19 */
+/* 22 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Dropdown; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_positionable__ = __webpack_require__(15);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_triggers__ = __webpack_require__(5);
@@ -16009,7 +16385,7 @@ var Dropdown = function (_Positionable) {
         'aria-hidden': 'true',
         'data-yeti-box': $id,
         'data-resize': $id,
-        'aria-labelledby': this.$anchor[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* GetYoDigits */])(6, 'dd-anchor')
+        'aria-labelledby': this.$anchor[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */])(6, 'dd-anchor')
       });
       _get(Dropdown.prototype.__proto__ || Object.getPrototypeOf(Dropdown.prototype), '_init', this).call(this);
       this._events();
@@ -16352,14 +16728,14 @@ Dropdown.defaults = {
 
 
 /***/ }),
-/* 20 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Equalizer; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_imageLoader__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_plugin__ = __webpack_require__(2);
@@ -16428,8 +16804,8 @@ var Equalizer = function (_Plugin) {
       __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__["a" /* MediaQuery */]._init();
 
       this.$watched = $watched.length ? $watched : this.$element.find('[data-equalizer-watch]');
-      this.$element.attr('data-resize', eqId || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'eq'));
-      this.$element.attr('data-mutate', eqId || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'eq'));
+      this.$element.attr('data-resize', eqId || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'eq'));
+      this.$element.attr('data-mutate', eqId || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'eq'));
 
       this.hasNested = this.$element.find('[data-equalizer]').length > 0;
       this.isNested = this.$element.parentsUntil(document.body, '[data-equalizer]').length > 0;
@@ -16753,14 +17129,14 @@ Equalizer.defaults = {
 
 
 /***/ }),
-/* 21 */
+/* 24 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Interchange; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_plugin__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 
@@ -16826,7 +17202,7 @@ var Interchange = function (_Plugin) {
     value: function _init() {
       __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__["a" /* MediaQuery */]._init();
 
-      var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'interchange');
+      var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'interchange');
       this.$element.attr({
         'data-resize': id,
         'id': id
@@ -17019,7 +17395,7 @@ Interchange.SPECIAL_QUERIES = {
 
 
 /***/ }),
-/* 22 */
+/* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -17028,7 +17404,7 @@ Interchange.SPECIAL_QUERIES = {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_smoothScroll__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_smoothScroll__ = __webpack_require__(16);
 
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -17087,7 +17463,7 @@ var Magellan = function (_Plugin) {
   }, {
     key: '_init',
     value: function _init() {
-      var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, 'magellan');
+      var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, 'magellan');
       var _this = this;
       this.$targets = __WEBPACK_IMPORTED_MODULE_0_jquery___default()('[data-magellan-target]');
       this.$links = this.$element.find('a');
@@ -17335,15 +17711,15 @@ Magellan.defaults = {
 
 
 /***/ }),
-/* 23 */
+/* 26 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return OffCanvas; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_plugin__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_triggers__ = __webpack_require__(5);
@@ -17958,20 +18334,20 @@ OffCanvas.defaults = {
 
 
 /***/ }),
-/* 24 */
+/* 27 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Orbit; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_motion__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_timer__ = __webpack_require__(34);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_timer__ = __webpack_require__(18);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_imageLoader__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__foundation_util_touch__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__foundation_util_touch__ = __webpack_require__(10);
 
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -18058,7 +18434,7 @@ var Orbit = function (_Plugin) {
 
       var $images = this.$element.find('img'),
           initActive = this.$slides.filter('.is-active'),
-          id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__foundation_util_core__["a" /* GetYoDigits */])(6, 'orbit');
+          id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_5__foundation_util_core__["b" /* GetYoDigits */])(6, 'orbit');
 
       this.$element.attr({
         'data-resize': id,
@@ -18560,18 +18936,18 @@ Orbit.defaults = {
 
 
 /***/ }),
-/* 25 */
+/* 28 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ResponsiveAccordionTabs; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_accordion__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_tabs__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_accordion__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_tabs__ = __webpack_require__(17);
 
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -18638,7 +19014,7 @@ var ResponsiveAccordionTabs = function (_Plugin) {
       this.currentPlugin = null;
       this.className = 'ResponsiveAccordionTabs'; // ie9 back compat
       if (!this.$element.attr('id')) {
-        this.$element.attr('id', __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* GetYoDigits */])(6, 'responsiveaccordiontabs'));
+        this.$element.attr('id', __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */])(6, 'responsiveaccordiontabs'));
       };
 
       this._init();
@@ -18811,7 +19187,7 @@ var ResponsiveAccordionTabs = function (_Plugin) {
         $panels.each(function (key, value) {
           var tempValue = __WEBPACK_IMPORTED_MODULE_0_jquery___default()(value).appendTo($tabsContent).addClass(tabsPanel);
           var hash = $liHeadsA.get(key).hash.slice(1);
-          var id = __WEBPACK_IMPORTED_MODULE_0_jquery___default()(value).attr('id') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* GetYoDigits */])(6, 'accordion');
+          var id = __WEBPACK_IMPORTED_MODULE_0_jquery___default()(value).attr('id') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */])(6, 'accordion');
           if (hash !== id) {
             if (hash !== '') {
               __WEBPACK_IMPORTED_MODULE_0_jquery___default()(value).attr('id', hash);
@@ -18851,19 +19227,19 @@ ResponsiveAccordionTabs.defaults = {};
 
 
 /***/ }),
-/* 26 */
+/* 29 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ResponsiveMenu; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_dropdownMenu__ = __webpack_require__(13);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_drilldown__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__foundation_accordionMenu__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_dropdownMenu__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_drilldown__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__foundation_accordionMenu__ = __webpack_require__(12);
 
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -18976,7 +19352,7 @@ var ResponsiveMenu = function (_Plugin) {
         this._checkMediaQueries();
       }
       // Add data-mutate since children may need it.
-      this.$element.attr('data-mutate', this.$element.attr('data-mutate') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["a" /* GetYoDigits */])(6, 'responsive-menu'));
+      this.$element.attr('data-mutate', this.$element.attr('data-mutate') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_2__foundation_util_core__["b" /* GetYoDigits */])(6, 'responsive-menu'));
     }
 
     /**
@@ -19056,14 +19432,14 @@ ResponsiveMenu.defaults = {};
 
 
 /***/ }),
-/* 27 */
+/* 30 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ResponsiveToggle; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_motion__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
 
@@ -19259,15 +19635,15 @@ ResponsiveToggle.defaults = {
 
 
 /***/ }),
-/* 28 */
+/* 31 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Reveal; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_motion__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_plugin__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_triggers__ = __webpack_require__(5);
@@ -19557,27 +19933,25 @@ var Reveal = function (_Plugin) {
       }
       // Motion UI method of reveal
       if (this.options.animationIn) {
-        (function () {
-          var afterAnimation = function () {
-            _this.$element.attr({
-              'aria-hidden': false,
-              'tabindex': -1
-            }).focus();
-            addRevealOpenClasses();
-            __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__["a" /* Keyboard */].trapFocus(_this.$element);
-          };
+        var afterAnimation = function () {
+          _this.$element.attr({
+            'aria-hidden': false,
+            'tabindex': -1
+          }).focus();
+          addRevealOpenClasses();
+          __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__["a" /* Keyboard */].trapFocus(_this.$element);
+        };
 
-          if (_this4.options.overlay) {
-            __WEBPACK_IMPORTED_MODULE_3__foundation_util_motion__["a" /* Motion */].animateIn(_this4.$overlay, 'fade-in');
+        if (this.options.overlay) {
+          __WEBPACK_IMPORTED_MODULE_3__foundation_util_motion__["a" /* Motion */].animateIn(this.$overlay, 'fade-in');
+        }
+        __WEBPACK_IMPORTED_MODULE_3__foundation_util_motion__["a" /* Motion */].animateIn(this.$element, this.options.animationIn, function () {
+          if (_this4.$element) {
+            // protect against object having been removed
+            _this4.focusableElements = __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__["a" /* Keyboard */].findFocusable(_this4.$element);
+            afterAnimation();
           }
-          __WEBPACK_IMPORTED_MODULE_3__foundation_util_motion__["a" /* Motion */].animateIn(_this4.$element, _this4.options.animationIn, function () {
-            if (_this4.$element) {
-              // protect against object having been removed
-              _this4.focusableElements = __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__["a" /* Keyboard */].findFocusable(_this4.$element);
-              afterAnimation();
-            }
-          });
-        })();
+        });
       }
       // jQuery method of reveal
       else {
@@ -19905,18 +20279,18 @@ function mobileSniff() {
 
 
 /***/ }),
-/* 29 */
+/* 32 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Slider; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_keyboard__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_motion__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_core__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_plugin__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_touch__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__foundation_util_touch__ = __webpack_require__(10);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__foundation_util_triggers__ = __webpack_require__(5);
 
 
@@ -20285,7 +20659,7 @@ var Slider = function (_Plugin) {
     key: '_setInitAttr',
     value: function _setInitAttr(idx) {
       var initVal = idx === 0 ? this.options.initialStart : this.options.initialEnd;
-      var id = this.inputs.eq(idx).attr('id') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* GetYoDigits */])(6, 'slider');
+      var id = this.inputs.eq(idx).attr('id') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* GetYoDigits */])(6, 'slider');
       this.inputs.eq(idx).attr({
         'id': id,
         'max': this.options.end,
@@ -20369,7 +20743,7 @@ var Slider = function (_Plugin) {
         value = this._value(offsetPct);
 
         // turn everything around for RTL, yay math!
-        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["b" /* rtl */])() && !this.options.vertical) {
+        if (__webpack_require__.i(__WEBPACK_IMPORTED_MODULE_3__foundation_util_core__["a" /* rtl */])() && !this.options.vertical) {
           value = this.options.end - value;
         }
 
@@ -20711,7 +21085,7 @@ function baseLog(base, value) {
 
 
 /***/ }),
-/* 30 */
+/* 33 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -20719,7 +21093,7 @@ function baseLog(base, value) {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_plugin__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_util_triggers__ = __webpack_require__(5);
 
@@ -20787,7 +21161,7 @@ var Sticky = function (_Plugin) {
       __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__["a" /* MediaQuery */]._init();
 
       var $parent = this.$element.parent('[data-sticky-container]'),
-          id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, 'sticky'),
+          id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, 'sticky'),
           _this = this;
 
       if ($parent.length) {
@@ -21291,7 +21665,7 @@ function emCalc(em) {
 
 
 /***/ }),
-/* 31 */
+/* 34 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -21487,7 +21861,7 @@ Toggler.defaults = {
 
 
 /***/ }),
-/* 32 */
+/* 35 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -21495,7 +21869,7 @@ Toggler.defaults = {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__foundation_util_triggers__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__foundation_positionable__ = __webpack_require__(15);
 
@@ -21568,7 +21942,7 @@ var Tooltip = function (_Positionable) {
     key: '_init',
     value: function _init() {
       __WEBPACK_IMPORTED_MODULE_2__foundation_util_mediaQuery__["a" /* MediaQuery */]._init();
-      var elemId = this.$element.attr('aria-describedby') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, 'tooltip');
+      var elemId = this.$element.attr('aria-describedby') || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["b" /* GetYoDigits */])(6, 'tooltip');
 
       this.options.tipText = this.options.tipText || this.$element.attr('title');
       this.template = this.options.template ? __WEBPACK_IMPORTED_MODULE_0_jquery___default()(this.options.template) : this._buildTemplate(elemId);
@@ -22000,318 +22374,11 @@ Tooltip.defaults = {
 
 
 /***/ }),
-/* 33 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/* 36 */
+/***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SmoothScroll; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__foundation_util_core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__foundation_plugin__ = __webpack_require__(2);
+module.exports = __webpack_require__(19);
 
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-
-
-
-
-/**
- * SmoothScroll module.
- * @module foundation.smooth-scroll
- */
-
-var SmoothScroll = function (_Plugin) {
-    _inherits(SmoothScroll, _Plugin);
-
-    function SmoothScroll() {
-        _classCallCheck(this, SmoothScroll);
-
-        return _possibleConstructorReturn(this, (SmoothScroll.__proto__ || Object.getPrototypeOf(SmoothScroll)).apply(this, arguments));
-    }
-
-    _createClass(SmoothScroll, [{
-        key: '_setup',
-
-        /**
-         * Creates a new instance of SmoothScroll.
-         * @class
-         * @name SmoothScroll
-         * @fires SmoothScroll#init
-         * @param {Object} element - jQuery object to add the trigger to.
-         * @param {Object} options - Overrides to the default plugin settings.
-         */
-        value: function _setup(element, options) {
-            this.$element = element;
-            this.options = __WEBPACK_IMPORTED_MODULE_0_jquery___default.a.extend({}, SmoothScroll.defaults, this.$element.data(), options);
-            this.className = 'SmoothScroll'; // ie9 back compat
-
-            this._init();
-        }
-
-        /**
-         * Initialize the SmoothScroll plugin
-         * @private
-         */
-
-    }, {
-        key: '_init',
-        value: function _init() {
-            var id = this.$element[0].id || __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__foundation_util_core__["a" /* GetYoDigits */])(6, 'smooth-scroll');
-            var _this = this;
-            this.$element.attr({
-                'id': id
-            });
-
-            this._events();
-        }
-
-        /**
-         * Initializes events for SmoothScroll.
-         * @private
-         */
-
-    }, {
-        key: '_events',
-        value: function _events() {
-            var _this = this;
-
-            // click handler function.
-            var handleLinkClick = function (e) {
-                // exit function if the event source isn't coming from an anchor with href attribute starts with '#'
-                if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(this).is('a[href^="#"]')) {
-                    return false;
-                }
-
-                var arrival = this.getAttribute('href');
-
-                _this._inTransition = true;
-
-                SmoothScroll.scrollToLoc(arrival, _this.options, function () {
-                    _this._inTransition = false;
-                });
-
-                e.preventDefault();
-            };
-
-            this.$element.on('click.zf.smoothScroll', handleLinkClick);
-            this.$element.on('click.zf.smoothScroll', 'a[href^="#"]', handleLinkClick);
-        }
-
-        /**
-         * Function to scroll to a given location on the page.
-         * @param {String} loc - A properly formatted jQuery id selector. Example: '#foo'
-         * @param {Object} options - The options to use.
-         * @param {Function} callback - The callback function.
-         * @static
-         * @function
-         */
-
-    }], [{
-        key: 'scrollToLoc',
-        value: function scrollToLoc(loc) {
-            var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : SmoothScroll.defaults;
-            var callback = arguments[2];
-
-            // Do nothing if target does not exist to prevent errors
-            if (!__WEBPACK_IMPORTED_MODULE_0_jquery___default()(loc).length) {
-                return false;
-            }
-
-            var scrollPos = Math.round(__WEBPACK_IMPORTED_MODULE_0_jquery___default()(loc).offset().top - options.threshold / 2 - options.offset);
-
-            __WEBPACK_IMPORTED_MODULE_0_jquery___default()('html, body').stop(true).animate({ scrollTop: scrollPos }, options.animationDuration, options.animationEasing, function () {
-                if (callback && typeof callback == "function") {
-                    callback();
-                }
-            });
-        }
-    }]);
-
-    return SmoothScroll;
-}(__WEBPACK_IMPORTED_MODULE_2__foundation_plugin__["a" /* Plugin */]);
-
-/**
- * Default settings for plugin.
- */
-
-
-SmoothScroll.defaults = {
-    /**
-     * Amount of time, in ms, the animated scrolling should take between locations.
-     * @option
-     * @type {number}
-     * @default 500
-     */
-    animationDuration: 500,
-    /**
-     * Animation style to use when scrolling between locations. Can be `'swing'` or `'linear'`.
-     * @option
-     * @type {string}
-     * @default 'linear'
-     * @see {@link https://api.jquery.com/animate|Jquery animate}
-     */
-    animationEasing: 'linear',
-    /**
-     * Number of pixels to use as a marker for location changes.
-     * @option
-     * @type {number}
-     * @default 50
-     */
-    threshold: 50,
-    /**
-     * Number of pixels to offset the scroll of the page on item click if using a sticky nav bar.
-     * @option
-     * @type {number}
-     * @default 0
-     */
-    offset: 0
-};
-
-
-
-/***/ }),
-/* 34 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Timer; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-
-
-
-
-function Timer(elem, options, cb) {
-  var _this = this,
-      duration = options.duration,
-      //options is an object for easily adding features later.
-  nameSpace = Object.keys(elem.data())[0] || 'timer',
-      remain = -1,
-      start,
-      timer;
-
-  this.isPaused = false;
-
-  this.restart = function () {
-    remain = -1;
-    clearTimeout(timer);
-    this.start();
-  };
-
-  this.start = function () {
-    this.isPaused = false;
-    // if(!elem.data('paused')){ return false; }//maybe implement this sanity check if used for other things.
-    clearTimeout(timer);
-    remain = remain <= 0 ? duration : remain;
-    elem.data('paused', false);
-    start = Date.now();
-    timer = setTimeout(function () {
-      if (options.infinite) {
-        _this.restart(); //rerun the timer.
-      }
-      if (cb && typeof cb === 'function') {
-        cb();
-      }
-    }, remain);
-    elem.trigger('timerstart.zf.' + nameSpace);
-  };
-
-  this.pause = function () {
-    this.isPaused = true;
-    //if(elem.data('paused')){ return false; }//maybe implement this sanity check if used for other things.
-    clearTimeout(timer);
-    elem.data('paused', true);
-    var end = Date.now();
-    remain = remain - (end - start);
-    elem.trigger('timerpaused.zf.' + nameSpace);
-  };
-}
-
-
-
-/***/ }),
-/* 35 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_util_mediaQuery__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_abide__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_accordion__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_accordionMenu__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_drilldown__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_dropdown__ = __webpack_require__(19);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_dropdownMenu__ = __webpack_require__(13);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_equalizer__ = __webpack_require__(20);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_interchange__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_magellan__ = __webpack_require__(22);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_offcanvas__ = __webpack_require__(23);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_orbit__ = __webpack_require__(24);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveMenu__ = __webpack_require__(26);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_15__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveToggle__ = __webpack_require__(27);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_16__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_reveal__ = __webpack_require__(28);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_slider__ = __webpack_require__(29);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_18__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_sticky__ = __webpack_require__(30);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_19__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_tabs__ = __webpack_require__(14);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_toggler__ = __webpack_require__(31);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_21__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_tooltip__ = __webpack_require__(32);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_22__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveAccordionTabs__ = __webpack_require__(25);
-
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].addToJquery(__WEBPACK_IMPORTED_MODULE_0_jquery___default.a);
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].MediaQuery = __WEBPACK_IMPORTED_MODULE_2__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_util_mediaQuery__["a" /* MediaQuery */];
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_3__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_abide__["a" /* Abide */], 'Abide');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_4__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_accordion__["a" /* Accordion */], 'Accordion');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_5__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_accordionMenu__["a" /* AccordionMenu */], 'AccordionMenu');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_6__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_drilldown__["a" /* Drilldown */], 'Drilldown');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_7__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_dropdown__["a" /* Dropdown */], 'Dropdown');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_8__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_dropdownMenu__["a" /* DropdownMenu */], 'DropdownMenu');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_9__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_equalizer__["a" /* Equalizer */], 'Equalizer');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_10__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_interchange__["a" /* Interchange */], 'Interchange');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_11__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_magellan__["a" /* Magellan */], 'Magellan');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_12__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_offcanvas__["a" /* OffCanvas */], 'OffCanvas');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_13__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_orbit__["a" /* Orbit */], 'Orbit');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_14__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveMenu__["a" /* ResponsiveMenu */], 'ResponsiveMenu');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_15__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveToggle__["a" /* ResponsiveToggle */], 'ResponsiveToggle');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_16__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_reveal__["a" /* Reveal */], 'Reveal');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_17__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_slider__["a" /* Slider */], 'Slider');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_18__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_sticky__["a" /* Sticky */], 'Sticky');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_19__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_tabs__["a" /* Tabs */], 'Tabs');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_20__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_toggler__["a" /* Toggler */], 'Toggler');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_21__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_tooltip__["a" /* Tooltip */], 'Tooltip');
-
-__WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_core__["a" /* Foundation */].plugin(__WEBPACK_IMPORTED_MODULE_22__home_deployer_sites_node_foundation_customizer_node_foundation_customizer_foundation_sites_js_foundation_responsiveAccordionTabs__["a" /* ResponsiveAccordionTabs */], 'ResponsiveAccordionTabs');
 
 /***/ })
 /******/ ]);
@@ -22320,5 +22387,7 @@ __WEBPACK_IMPORTED_MODULE_1__home_deployer_sites_node_foundation_customizer_node
 
 
 
-$(document).foundation()
+$(document).ready(function() {
+    $(document).foundation();
+})
 ;

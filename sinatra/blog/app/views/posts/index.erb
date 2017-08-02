@@ -13,7 +13,7 @@
   <form action="/posts/<%= post.id %>/delete" method="post">
     <%= Rack::Csrf.tag(env) %>
     <input name='_method' type='hidden' value='delete' />
-	<input type="submit" value="Delete">
+    <button type="submit" class="button small" value="Delete">Delete</button>
   </form>
   <br>
 <% end %>

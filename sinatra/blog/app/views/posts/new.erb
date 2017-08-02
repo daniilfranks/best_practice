@@ -3,7 +3,7 @@
 <form action="/posts" method="post">
   <%= Rack::Csrf.tag(env) %>
   <p>Title: <input type="text" name="title"></p>
-  <p>Description: <input type="text" name="description"></p>
+  <p>Description: <textarea name="description"></textarea></p>
   <p>User_id: <input type="number" name="user_id"></p>
-  <input type="submit" value="Create post">
+  <button type="submit" class="button small" value="Create post">Create post</button>
 </form>

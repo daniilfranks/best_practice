@@ -1,6 +1,8 @@
-#= require 'jquery'
 #= require 'what-input'
+#= require 'jquery'
 #= require 'foundation'
 #= require_self
 
-$(document).foundation()
+$(document).ready(function() {
+    $(document).foundation();
+})

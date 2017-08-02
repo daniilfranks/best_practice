@@ -5,63 +5,66 @@
     <link rel="stylesheet" href="/assets/<%= $sprockets['app.css'].digest_path %>" type="text/css"> 
   </head>
 
-  <div class="top-bar">
-  <div class="top-bar-left">
-    <ul class="dropdown menu" data-dropdown-menu>
-      <li class="menu-text">Site Title</li>
-      <li>
-        <a href="#">One</a>
-        <ul class="menu vertical">
-          <li><a href="#">One</a></li>
-          <li><a href="#">Two</a></li>
-          <li><a href="#">Three</a></li>
-        </ul>
-      </li>
-      <li><a href="#">Two</a></li>
-      <li><a href="#">Three</a></li>
-    </ul>
-  </div>
-  <div class="top-bar-right">
-    <ul class="menu">
-      <li><input type="search" placeholder="Search"></li>
-      <li><button type="button" class="button">Search</button></li>
-    </ul>
-  </div>
-</div>
+<body>
+  <div class="row">
+    <div class="small-12 large-expand columns">
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <ul class="dropdown menu" data-dropdown-menu>
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/posts">Posts</a></li>
+            <li><a href="/users">Users</a></li>
 
-  <body>
-    <div>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/about">About</a></li>
-        <li><a href="/posts">Posts</a></li>
-        <li><a href="/users">Users</a></li>
+            <% if logged_in? %>
+              <li>
+                <a href="#">Hi, <%= current_user.login %></a>
+                <ul class="menu vertical">
+                  <li><a href="/profile">Profile</a></li>
+                  <li><a href="/logout">Logout</a></li>
+                </ul>
+              </li>
 
-        <% if logged_in? %>
-          <li><a href="#">Hi, <%= current_user.login %></a></li>
-          <li><a href="/logout">Logout</a></li>
-        <% else %>
-          <li><a href="/sign_in">Sign in</a></li>
-          <li><a href="/sign_up">Sign up</a></li>
-        <% end %>
-      </ul>
+              </ul>
+              <% else %>
+                <li><a href="/sign_in">Sign in</a></li>
+                <li><a href="/sign_up">Sign up</a></li>
+              <% end %>
+          </ul>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div>
+  <div class="row">
+    <div class="small-12 large-expand columns">
       <% if flash[:notice] %>
-        <p class="alert alert-success"><%= flash[:notice] %></p>
+        <div class="success callout" data-closable>
+          <p><%= flash[:notice] %></p>
+            <button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+              <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
       <% end %>
-      
+    
       <% if flash[:error] %>
-        <% flash[:error].each do |error| %>
-          <p class="alert alert-error"><%= error %></p>
-        <% end %>
+        <div class="alert callout" data-closable>
+          <% flash[:error].each do |error| %>
+            <p><%= error %></p>
+          <% end %>
+            <button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+              <span aria-hidden="true">&times;</span>
+           </button>
+        </div>
       <% end %>
     </div>
-
-    <%= yield %>
+  </div>
+  <div class="row">
+    <div class="small-12 large-expand columns">
+      <%= yield %>
+    </div>
+  </div>
 
     <script src="/assets/<%= $sprockets['app.js'].digest_path %>" type="text/javascript"></script>
-
   </body>
 </html>
