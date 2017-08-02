@@ -11,6 +11,10 @@ class ApplicationController < Sinatra::Base
     use Rack::Flash
     use Rack::Csrf, :raise => true
     register Sinatra::StrongParams
+    register Sinatra::Partial
+
+    enable :partial_underscores
+    set :partial_template_engine, :erb
   end
 
   #helpers

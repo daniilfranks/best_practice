@@ -31,8 +31,10 @@ end
 # @post = @user.posts.first
 # @post.user
 
-#error flash
-#patrials
+# error flash
+# pagination
+# patrials
+# recaptcha
 
 #assets
 # rake assets          # Compile assets

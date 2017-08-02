@@ -1,0 +1,19 @@
+<% if flash[:notice] %>
+  <div class="success callout" data-closable>
+    <p><%= flash[:notice] %></p>
+      <button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+        <span aria-hidden="true">&times;</span>
+      </button>
+  </div>
+<% end %>
+
+<% if flash[:error] %>
+  <div class="alert callout" data-closable>
+    <% flash[:error].each do |error| %>
+      <p><%= error %></p>
+    <% end %>
+      <button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+        <span aria-hidden="true">&times;</span>
+     </button>
+  </div>
+<% end %>

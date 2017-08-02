@@ -14,6 +14,7 @@ gem 'rack_csrf'
 gem 'sinatra-strong-params', :require => 'sinatra/strong-params'
 gem 'sprockets'
 gem 'sass'
+gem 'sinatra-partial'
 
 group :test do
   gem 'rspec'
