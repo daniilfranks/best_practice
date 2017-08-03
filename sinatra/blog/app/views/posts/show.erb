@@ -5,7 +5,7 @@
 <p>User_id: <%= @post.user_id %></p>
 <p>Created: <%= @post.created_at %></p>
 
-<form action="/posts/<%= @post.id %>/delete" method="post">
+<form action="/posts/<%= @post.id %>" method="post">
     <%= Rack::Csrf.tag(env) %>
     <input name='_method' type='hidden' value='delete' />
 	<button type="submit" class="button small" value="Delete">Delete</button>

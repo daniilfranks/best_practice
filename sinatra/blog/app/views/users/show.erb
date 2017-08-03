@@ -1,0 +1,8 @@
+<h1>Profile</h1>
+
+<p>Id: <%=  @user.id %></p>
+<p>Login: <%=  @user.login %></p>
+<p>Email: <%=  @user.email %></p>
+<p>Created_at: <%=  @user.created_at %></p>
+
+<a href="/users/<%= @user.id %>/edit">Update profile</a>

@@ -18,14 +18,6 @@ class ApplicationController < Sinatra::Base
 
     enable :partial_underscores
     set :partial_template_engine, :erb
-  end
-
-  #helpers
-  def current_user
-    @current_user ||= User.find_by(id: session[:user_id])
-  end
-
-  def logged_in?
-    !current_user.nil?
+    helpers ApplicationHelper
   end
 end

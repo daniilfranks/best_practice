@@ -11,7 +11,8 @@ class PostsController < ApplicationController
       erb :'posts/new'
     end
 
-    post allows: [:title, :description, :user_id] do
+    post allows: [:title, :description] do
+      user_id_params
       @post = Post.new(params)
       
       if @post.save
@@ -29,7 +30,7 @@ class PostsController < ApplicationController
       erb :'posts/edit'
     end
 
-    put '/:id', allows: [:id, :title, :description, :user_id, :created_at] do
+    put '/:id', allows: [:id, :title, :description] do
       @post = Post.find(params['id'])
       @post.update(params)
 
@@ -41,7 +42,7 @@ class PostsController < ApplicationController
       	redirect "/posts/#{params[:id]}/edit"
       end
     end
-
+    
     # Show
     get '/:id' do
       @post = Post.find(params[:id])
@@ -49,7 +50,7 @@ class PostsController < ApplicationController
     end
 
     # Destroy
-    delete '/:id/delete', allows: [:id] do
+    delete '/:id', allows: [:id] do
       @post = Post.find(params['id'])
       
       if @post.destroy
