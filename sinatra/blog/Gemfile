@@ -17,6 +17,7 @@ gem 'sass'
 gem 'sinatra-partial'
 gem 'will_paginate'
 gem 'will_paginate-foundation'
+gem "recaptcha"
 
 group :test do
   gem 'rspec'

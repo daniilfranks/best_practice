@@ -19,7 +19,7 @@ class UsersController < ApplicationController
 
     @user = User.new(login: login, email: email, password: password )
       
-    if @user.save
+    if @user.save && verify_recaptcha(model: @user)
       flash[:notice] = 'User successfully created.'
       redirect '/'
     else

@@ -13,6 +13,8 @@ class ApplicationController < Sinatra::Base
     register Sinatra::StrongParams
     register Sinatra::Partial
     helpers WillPaginate::Sinatra::Helpers
+    include Recaptcha::ClientHelper
+    include Recaptcha::Verify
 
     enable :partial_underscores
     set :partial_template_engine, :erb
