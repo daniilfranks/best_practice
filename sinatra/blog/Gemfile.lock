@@ -152,6 +152,9 @@ GEM
     websocket-driver (0.6.5)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.2)
+    will_paginate (3.1.6)
+    will_paginate-foundation (6.2.1)
+      will_paginate (>= 3.0.3)
     xpath (2.1.0)
       nokogiri (~> 1.3)
 
@@ -181,6 +184,8 @@ DEPENDENCIES
   sinatra-strong-params
   sprockets
   sqlite3
+  will_paginate
+  will_paginate-foundation
 
 BUNDLED WITH
    1.15.3

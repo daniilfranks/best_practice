@@ -12,6 +12,7 @@ class ApplicationController < Sinatra::Base
     use Rack::Csrf, :raise => true
     register Sinatra::StrongParams
     register Sinatra::Partial
+    helpers WillPaginate::Sinatra::Helpers
 
     enable :partial_underscores
     set :partial_template_engine, :erb

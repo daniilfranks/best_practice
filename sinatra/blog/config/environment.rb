@@ -5,7 +5,11 @@ Bundler.require(:default, ENV["SINATRA_ENV"])
 require 'sinatra/base'
 require 'sinatra/contrib'
 require 'sinatra/namespace'
-require 'sinatra/activerecord'
+require 'will_paginate'
+require 'will_paginate/active_record'
+require 'will_paginate/view_helpers/sinatra'
+require "will_paginate-foundation"
+require "will_paginate/collection"
 require 'sinatra/partial'
 require 'rack-flash'
 require 'rack/csrf'
