@@ -1,2 +1,12 @@
 <h1>All Users</h1>
 
+<% @users.each do |user| %>
+  <%= user.id %>
+  <%= user.login %>
+  <%= user.email %>
+  <%= user.created_at %>
+  <a href="/users/<%= user.id %>">Show</a>
+  <br>
+<% end %>
+
+<%= will_paginate @users, renderer: FoundationPagination::Sinatra %>

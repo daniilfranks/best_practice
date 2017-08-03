@@ -3,6 +3,7 @@ class UsersController < ApplicationController
   namespace '/users' do
   	# Show all users
     get do
+      @users = User.paginate(:page => params[:page], :per_page => 2)
       erb :'users/index'
     end
 
