@@ -9,8 +9,8 @@
 /test/tmp/
 /test/version_tmp/
 /tmp/
-/db/*db
-/publlic/assets
+/db/*.db
+/publlic
 
 # Used by dotenv library to load environment variables.
 # .env
