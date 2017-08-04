@@ -3,21 +3,23 @@ class UsersController < ApplicationController
   namespace '/users' do
   	# Show all users
     get do
+      hide_page
       @users = User.paginate(:page => params[:page], :per_page => 2)
       erb :'users/index'
     end
 
     # Edit user
     get '/:id/edit' do
+      hide_page
       @user = User.find(params[:id])
       erb :'users/edit'
     end
 
     put '/:id', allows: [:id, :login, :email] do
-      @user = User.find(params['id'])
-      @user.update(params)
+      user = User.find(params['id'])
+      user.update(params)
 
-      if @user.save
+      if user.save
         flash[:notice] = 'User successfully updated.'
         redirect "/users/#{params['id']}"
       else
@@ -28,6 +30,7 @@ class UsersController < ApplicationController
 
     # Show
     get '/:id' do
+      hide_page
       @user = User.find_by_id(params['id'])
       if !@user.nil?
         @posts = @user.posts.paginate(:page => params[:page], :per_page => 2)
@@ -45,12 +48,13 @@ class UsersController < ApplicationController
 
   post '/sign_up', allows: [:login, :email, :password, :'g-recaptcha-response'] do
     login = params['login']
-  	email = params['email']
-  	password = Digest::SHA512.hexdigest(params['password'])
+  	email = params['email'].downcase
+  	password = User.digest(params['password'])
 
-    @user = User.new(login: login, email: email, password: password )
+    user = User.new(login: login, email: email, password: password )
       
-    if verify_recaptcha(model: @user) && @user.save
+    if verify_recaptcha(model: user) && user.save
+      log_in(user)
       flash[:notice] = 'User successfully created.'
       redirect '/'
     else
@@ -66,22 +70,22 @@ class UsersController < ApplicationController
 
   post '/sign_in', allows: [:login, :password] do
     login = params['login']
-  	password = Digest::SHA512.hexdigest(params['password'])
-    @user = User.find_by(login: login, password: password)
+  	password = User.digest(params['password'])
+    user = User.find_by(login: login, password: password)
 
-    if @user.nil?
+    if user.nil?
       flash[:notice] = 'Invalid login/password'
       redirect '/sign_in'
     else
       flash[:notice] = 'Successfully log in.'
-      session[:user_id] = @user.id
+      log_in(user)
       redirect '/'
     end
   end
 
   # Logout
-  get '/logout' do
-    session.clear
-    redirect '/'
+  delete '/logout' do
+    log_out
+    redirect to '/'
   end
 end

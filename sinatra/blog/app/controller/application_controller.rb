@@ -18,6 +18,6 @@ class ApplicationController < Sinatra::Base
 
     enable :partial_underscores
     set :partial_template_engine, :erb
-    helpers ApplicationHelper
+    include ApplicationHelper
   end
 end

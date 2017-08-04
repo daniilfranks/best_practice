@@ -10,4 +10,16 @@ module ApplicationHelper
   def user_id_params
     params.merge!({ user_id: current_user.id })
   end
+
+  def log_in(user)
+  	session[:user_id] = user.id
+  end
+
+  def log_out
+    session.delete(:user_id)
+  end
+
+  def hide_page
+    redirect to '/' unless logged_in?
+  end
 end

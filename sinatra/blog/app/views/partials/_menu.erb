@@ -12,7 +12,13 @@
           <ul class="menu vertical">
             <li><a href="/users/<%= current_user.id %>">Profile</a></li>
             <li><a href="/users/<%= current_user.id %>/edit">Edit</a></li>
-            <li><a href="/logout">Logout</a></li>
+            <li><a href="/logout">
+                <form action="/logout" method="post">
+                  <%= Rack::Csrf.tag(env) %>
+                  <input name='_method' type='hidden' value='delete' />
+                  <input type="submit" class="button tiny" value="Logout">
+                </form>
+            </a></li>
           </ul>
         </li>
 
