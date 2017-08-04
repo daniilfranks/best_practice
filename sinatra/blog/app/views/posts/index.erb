@@ -3,18 +3,18 @@
 <a href="/posts/new">Create posts</a><br>
 
 <% @posts.each do |post| %>
-  <%= post.id %>
-  <%= post.title %>
-  <%= post.description %>
-  <%= post.user_id %>
-  <%= post.created_at %>
-  <a href="/posts/<%= post.id %>">Show</a>
-  <a href="/posts/<%= post.id %>/edit">Edit</a>
+  <p>Id: <%= post.id %></p>
+  <p>Title: <%= post.title %></p>
+  <p>Description: <%= post.description %></p>
+  <p>Login: <%= post.user.login %></p>
+  <p>Created: <%= post.created_at %></p>
+  <a href="/posts/<%= post.id %>">Show</a></p>
+  <a href="/posts/<%= post.id %>/edit">Edit</a></p>
   <form action="/posts/<%= post.id %>" method="post">
     <%= Rack::Csrf.tag(env) %>
     <input name='_method' type='hidden' value='delete' />
     <button type="submit" class="button small" value="Delete">Delete</button>
-  </form>
+  </form></p>
   <br>
 <% end %>
 

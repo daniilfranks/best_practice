@@ -2,7 +2,7 @@
 
 <p>Title: <%= @post.title %></p>
 <p>Description: <%= @post.description %></p>
-<p>User_id: <%= @post.user_id %></p>
+<p>Login: <%= @post.user.login %></p>
 <p>Created: <%= @post.created_at %></p>
 
 <form action="/posts/<%= @post.id %>" method="post">

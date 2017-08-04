@@ -1,11 +1,11 @@
 <h1>All Users</h1>
 
 <% @users.each do |user| %>
-  <%= user.id %>
-  <%= user.login %>
-  <%= user.email %>
-  <%= user.created_at %>
-  <a href="/users/<%= user.id %>">Show</a>
+  <p>Id: <%= user.id %></p>
+  <p>Login:<%= user.login %></p>
+  <p>Email:<%= user.email %></p>
+  <p>Create: <%= user.created_at %></p>
+  <p><a href="/users/<%= user.id %>">Show</a></p>
   <br>
 <% end %>
 

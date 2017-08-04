@@ -26,10 +26,11 @@ class UsersController < ApplicationController
       end
     end
 
-    # Profile
+    # Show
     get '/:id' do
       @user = User.find_by_id(params['id'])
       if !@user.nil?
+        @posts = @user.posts.paginate(:page => params[:page], :per_page => 2)
         erb :'users/show'
       else
         erb :'users/not_user'

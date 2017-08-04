@@ -6,3 +6,15 @@
 <p>Created_at: <%=  @user.created_at %></p>
 
 <a href="/users/<%= @user.id %>/edit">Update profile</a>
+
+<h2>User posts</h2>
+<% @posts.each do |post| %>
+  <p>Id: <%= post.id %></p>
+  <p>Title: <%= post.title %></p>
+  <p>Description: <%= post.description %></p>
+  <p>Create: <%= post.created_at %></p>
+  <p><a href="/posts/<%= post.id %>"></a> Show </p>
+  <p><a href="/posts/<%= post.id %>/edit"></a> Edit </p>
+<% end %>
+
+<%= will_paginate @posts, renderer: FoundationPagination::Sinatra %>
