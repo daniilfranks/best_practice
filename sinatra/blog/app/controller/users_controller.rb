@@ -49,9 +49,9 @@ class UsersController < ApplicationController
   post '/sign_up', allows: [:login, :email, :password, :'g-recaptcha-response'] do
     login = params['login']
   	email = params['email'].downcase
-  	password = User.digest(params['password'])
+  	password = User.encrypt_password(params['password'])
 
-    user = User.new(login: login, email: email, password: password)
+    user = User.new(login: login, email: email, password: password[:password_hash], salt: password[:password_salt])
       
     if verify_recaptcha(model: user) && user.save
       log_in(user)
@@ -70,16 +70,16 @@ class UsersController < ApplicationController
 
   post '/sign_in', allows: [:login, :password] do
     login = params['login']
-  	password = User.digest(params['password'])
-    user = User.find_by(login: login, password: password)
+  	password = params['password']
+    user = User.authenticate(login, password)
 
-    if user.nil?
-      flash[:notice] = 'Invalid login/password'
-      redirect '/sign_in'
-    else
+    if user
       flash[:notice] = 'Successfully log in.'
       log_in(user)
       redirect '/'
+    else
+      flash[:notice] = 'Invalid login/password'
+      redirect '/sign_in'
     end
   end
 

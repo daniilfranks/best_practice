@@ -7,8 +7,16 @@ class User < ActiveRecord::Base
 
   has_many :posts
 
-  def self.digest(password)
-    Digest::SHA512.hexdigest(password)
+  def self.authenticate(login, password)
+    user = self.find_by_login(login)
+    user && user.password == BCrypt::Engine.hash_secret(password, user.salt) ? user : nil
+  end
+
+  def self.encrypt_password(password)
+    password_salt = BCrypt::Engine.generate_salt
+    password_hash = BCrypt::Engine.hash_secret(password, password_salt)
+
+    { password_salt: password_salt, password_hash: password_hash }
   end
 
   def self.new_token
