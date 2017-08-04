@@ -1,12 +1,19 @@
 require_relative '../spec_helper'
 
 describe 'class post' do
-  before do
+  before(:each) do
+    User.create(login: 'bobanuk', password: 'fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe', email: 'babanovs5@gmail.com')
+
+    visit '/sign_in'
+    fill_in(:login, with: 'bobanuk')
+    fill_in(:password, with: '12345678')
+    click_button('Sign in')
+
     Post.create(title: 'First post', description: 'text text', user_id: 1)
     Post.create(title: 'My post', description: 'text text', user_id: 1)
-    Post.create(title: 'Second post', description: 'text text', user_id: 2)
-    Post.create(title: 'Good post', description: 'text text', user_id: 3)
-    Post.create(title: 'Last post', description: 'text text', user_id: 4)
+    Post.create(title: 'Second post', description: 'text text', user_id: 1)
+    Post.create(title: 'Good post', description: 'text text', user_id: 1)
+    Post.create(title: 'Last post', description: 'text text', user_id: 1)
   end
 
   context 'return status 200' do

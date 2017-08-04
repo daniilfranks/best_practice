@@ -43,10 +43,10 @@ class UsersController < ApplicationController
     erb :'users/sign_up'
   end
 
-  post '/sign_up' do
-  	login = params[:login]
-  	email = params[:email]
-  	password = Digest::SHA512.hexdigest(params[:password])
+  post '/sign_up', allows: [:login, :email, :password, :'g-recaptcha-response'] do
+    login = params['login']
+  	email = params['email']
+  	password = Digest::SHA512.hexdigest(params['password'])
 
     @user = User.new(login: login, email: email, password: password )
       
