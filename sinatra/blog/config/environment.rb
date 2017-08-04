@@ -16,6 +16,7 @@ require 'rack/csrf'
 require 'digest'
 require 'sprockets'
 require 'recaptcha'
+require 'dotenv/load'
 
 Recaptcha.configure do |config|
   config.site_key  = '6LdX0RcTAAAAAG82p_RGgaVTcozjtDfxwXf47tT5'

@@ -2,10 +2,7 @@ class ApplicationController < Sinatra::Base
   configure do
   	set :views, 'app/views'
   	set :public_dir, 'public'
-
-    use Rack::Session::Cookie, :key => 'rack.session',
-                               :expire_after => 2592000,
-                               :secret => 'jd0ng+#kwr4^NbK|H7BJm#f?T@g:EgL2'
+    enable :sessions
     register Sinatra::Namespace
     use Rack::MethodOverride
     use Rack::Flash
