@@ -51,7 +51,7 @@ class UsersController < ApplicationController
   	email = params['email'].downcase
   	password = User.encrypt_password(params['password'])
 
-    user = User.new(login: login, email: email, password: password[:password_hash], salt: password[:password_salt])
+    user = User.new(login: login, email: email, password: password[:password_hash], password_salt: password[:password_salt])
       
     if verify_recaptcha(model: user) && user.save
       log_in(user)
