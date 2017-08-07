@@ -5,6 +5,7 @@ Bundler.require(:default, ENV["SINATRA_ENV"])
 require 'sinatra/base'
 require 'sinatra/contrib'
 require 'sinatra/namespace'
+require 'sinatra/cookies'
 require 'will_paginate'
 require 'will_paginate/active_record'
 require 'will_paginate/view_helpers/sinatra'

@@ -16,5 +16,6 @@ class ApplicationController < Sinatra::Base
     enable :partial_underscores
     set :partial_template_engine, :erb
     include ApplicationHelper
+    include Sinatra::Cookies
   end
 end

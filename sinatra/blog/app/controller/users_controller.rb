@@ -89,3 +89,7 @@ class UsersController < ApplicationController
     redirect to '/'
   end
 end
+# response.set_cookie('user_id', value: Base64.encode64('1'), 
+#                                   expires: Time.now + 2592000)
+# request.cookies['user_id']
+# response.delete_cookie('user_id')
