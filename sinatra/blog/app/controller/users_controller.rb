@@ -68,16 +68,15 @@ class UsersController < ApplicationController
     erb :'users/sign_in'
   end
 
-  post '/sign_in', allows: [:login, :password] do
+  post '/sign_in', allows: [:login, :password, :remember_me] do
     login = params['login']
   	password = params['password']
+    remember_me = params['remember_me']
     user = User.authenticate(login, password)
 
     if user
       flash[:notice] = 'Successfully log in.'
-      #log_in(user)
-      user.encrypt_digest
-      write_cookies(user)
+      remember_me == 'on' ? write_cookies(user) : log_in(user)
       redirect '/'
     else
       flash[:notice] = 'Invalid login/password'

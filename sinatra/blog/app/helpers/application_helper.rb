@@ -1,7 +1,11 @@
 module ApplicationHelper
   def current_user
-    #@current_user ||= User.find_by(id: session[:user_id])
-    @current_user ||= read_cookies
+    if user_id = session[:user_id]
+      @current_user ||= User.find_by(id: user_id)
+    else
+      @current_user ||= read_cookies 
+      log_in(@current_user) if !@current_user.nil?
+    end
   end
 
   def logged_in?
@@ -17,8 +21,8 @@ module ApplicationHelper
   end
 
   def log_out
-    #session.delete(:user_id)
     current_user.forget
+    session.delete(:user_id)
     response.delete_cookie('user_id')
     response.delete_cookie('remember_digest')
     @current_user = nil
@@ -29,6 +33,7 @@ module ApplicationHelper
   end
 
   def write_cookies(user)
+    user.encrypt_digest
     response.set_cookie('remember_digest', value: Base64.encode64(user.remember_digest), 
                                            expires: Time.now + 2592000)
 
