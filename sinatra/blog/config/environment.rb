@@ -20,8 +20,8 @@ require 'recaptcha'
 require 'dotenv/load'
 
 Recaptcha.configure do |config|
-  config.site_key  = '6LdX0RcTAAAAAG82p_RGgaVTcozjtDfxwXf47tT5'
-  config.secret_key = '6LdX0RcTAAAAALCgCZgbHSzJ1IpIbMsmXmhM2zBN'
+  config.site_key  = ENV['SITE_KEY']
+  config.secret_key = ENV['SECRET_KEY']
 end
 
 $sprockets = Sprockets::Environment.new

@@ -18,4 +18,8 @@ class ApplicationController < Sinatra::Base
     include ApplicationHelper
     include Sinatra::Cookies
   end
+
+  not_found do
+    erb :'404'
+  end
 end
