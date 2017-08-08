@@ -23,10 +23,11 @@ class User < ActiveRecord::Base
     SecureRandom.urlsafe_base64
   end
 
-  def remember
-    self.remember_token = User.new_token
-    password = User.encrypt_password(remember_token)
-    update_attributes(remember_digest: password[:password_hash], remember_digest_salt: password[:password_salt])
+  def encrypt_digest
+    remember_digest_salt = BCrypt::Engine.generate_salt
+    remember_digest = BCrypt::Engine.hash_secret(User.new_token, remember_digest_salt)
+
+    update_attributes(remember_digest: remember_digest, remember_digest_salt: remember_digest_salt)
   end
 
   def forget

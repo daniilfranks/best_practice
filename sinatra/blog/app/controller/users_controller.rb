@@ -54,7 +54,7 @@ class UsersController < ApplicationController
     user = User.new(login: login, email: email, password: password[:password_hash], password_salt: password[:password_salt])
       
     if verify_recaptcha(model: user) && user.save
-      log_in(user)
+      #log_in(user)
       flash[:notice] = 'User successfully created.'
       redirect '/'
     else
@@ -75,7 +75,9 @@ class UsersController < ApplicationController
 
     if user
       flash[:notice] = 'Successfully log in.'
-      log_in(user)
+      #log_in(user)
+      user.encrypt_digest
+      write_cookies(user)
       redirect '/'
     else
       flash[:notice] = 'Invalid login/password'
