@@ -2,6 +2,7 @@ class PostsController < ApplicationController
   namespace '/posts' do
   	# Show all
     get do
+      @posts_count = Post.count
       @posts = Post.paginate(:page => params[:page], :per_page => 2)
       erb :'posts/index'
     end

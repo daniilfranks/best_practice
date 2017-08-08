@@ -1,4 +1,8 @@
 class ApplicationController < Sinatra::Base
+  configure :development do
+
+  end
+  
   configure do
   	set :views, 'app/views'
   	set :public_dir, 'public'
@@ -12,14 +16,20 @@ class ApplicationController < Sinatra::Base
     helpers WillPaginate::Sinatra::Helpers
     include Recaptcha::ClientHelper
     include Recaptcha::Verify
-
     enable :partial_underscores
     set :partial_template_engine, :erb
     include ApplicationHelper
     include Sinatra::Cookies
+
+    #on error page
+    set :show_exceptions, false
   end
 
   not_found do
     erb :'404'
+  end
+
+  error do
+    erb :'error'
   end
 end
