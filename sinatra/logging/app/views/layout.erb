@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sinatra MVC</title>
+  </head>
+
+  <body>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/users">Users</a></li>
+      <% if logged_in? %>
+        <li><a href="/profile"><%= current_user.login %></a></li>
+        <li>
+          <a href="/logout">
+            <form action="/logout" method="post">
+              <input name='_method' type='hidden' value='delete' />
+              <input type="submit" value="Logout">
+            </form>
+          </a>
+        </li>
+      <% else %>
+        <li><a href="/sign_in">Sign in</a></li>
+        <li><a href="/sign_up">Sign up</a></li>
+      <% end %>
+    </ul>
+    <%= yield %>
+  </body>
+</html>
