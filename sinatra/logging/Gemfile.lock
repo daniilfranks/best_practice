@@ -17,6 +17,8 @@ GEM
     arel (8.0.0)
     ast (2.3.0)
     backports (3.8.0)
+    bcrypt (3.1.11)
+    builder (3.2.3)
     capybara (2.13.0)
       addressable
       mime-types (>= 1.16)
@@ -79,6 +81,9 @@ GEM
       rack
     rack-test (0.6.3)
       rack (>= 1.0)
+    rack_session_access (0.1.1)
+      builder (>= 2.0.0)
+      rack (>= 1.0.0)
     rainbow (2.2.2)
       rake
     rake (12.0.0)
@@ -139,6 +144,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bcrypt
   capybara
   database_cleaner
   guard
@@ -146,6 +152,7 @@ DEPENDENCIES
   pry
   puma
   rack-test
+  rack_session_access
   rake
   require_all
   rspec

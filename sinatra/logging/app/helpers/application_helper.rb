@@ -12,7 +12,7 @@ module ApplicationHelper
   end
 
   def hide_page
-  	redirect '/' unless logged_in?
+  	redirect '/sign_in' unless logged_in?
   end
 
   def log_out

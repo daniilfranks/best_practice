@@ -4,9 +4,10 @@ class ApplicationController < Sinatra::Base
   	set :public_dir, 'public'
   	enable :sessions
   	set :session_secret, "secret"
+  	use RackSessionAccess if environment == :test
   	use Rack::MethodOverride
-  	include ApplicationHelper
   end
+  include ApplicationHelper
 
   # home page
   get '/' do
@@ -35,9 +36,9 @@ class ApplicationController < Sinatra::Base
   end
 
   post '/sign_in' do
-    user = User.find_by(login: params['login'], password: params['password'])
+    user = User.find_by_login(params['login'])
 
-    if user
+    if user && user.authenticate(params['password'])
       log_in(user)
       redirect '/'
     else
