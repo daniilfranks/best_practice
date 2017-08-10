@@ -1,0 +1,17 @@
+<h1>All Posts</h1>
+
+<a href="/posts/new">Create post</a>
+
+<h2>Posts coutns: <%= @posts_count %></h2>
+
+<% @post.each do |post| %>
+  <p>Title: <%= post.title %></p>
+  <p>Description: <%= post.description %></p>
+  <p>Date: <%= post.created_at %></p>
+  <a href="/posts/<%= post.id %>">Show</a>
+  <a href="/posts/<%= post.id %>/edit">Edit</a>
+  <form action="/posts/<%= post.id %>" method="post">
+  	<input type="hidden" name="_method" value="delete">
+  	<input type="submit" value="Delete">
+  </form>
+<% end %>
