@@ -1,0 +1,16 @@
+<%= @errors %>
+
+<p><%= @name %></p>
+<p><%= @age %></p>
+<p><%= @email %></p>
+<p><%= @city %></p>
+
+<h1>Profile</h1>
+
+<form action="/profile" method="post">
+	<p>Name: <input type="text" name="name"></p>
+	<p>Age: <input type="text" name="age"></p>
+	<p>Email: <input type="text" name="email"></p>
+	<p>City: <input type="text" name="city"></p>
+	<input type="submit" value="Create">
+</form>

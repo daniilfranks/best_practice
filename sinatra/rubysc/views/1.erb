@@ -1,0 +1,20 @@
+<h1>1</h1>
+
+<p><%= 'Hello sinatra' %></p>
+<p><%= 1 + 3 %></p>
+<p><%= @name %></p>
+<p><%= full_name %></p>
+
+<% @array.each do |arr| %>
+  <%= arr %><br>
+<% end %>
+
+<p><%= secret %></p>
+
+<p><%= @age > 30 ? true : false %></p>
+
+<p><%= session[:name] %></p>
+
+<a href="/form">Session clear</a><br>
+
+<a href="/profile">Profile</a><br>
