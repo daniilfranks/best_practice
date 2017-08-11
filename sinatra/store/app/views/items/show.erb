@@ -1,0 +1,16 @@
+<h1>Show</h1>
+
+<img src="<%= @item.image %>" alt="<%= @item.title %>" width="512" height="512">
+<p>Id: <%= @item.id %></p>
+<p>Title: <%= @item.title %></p>
+<p>Description: <%= @item.description %></p>
+<p>Price: <%= @item.price %></p>
+<p>Count: <%= @item.count %></p>
+<p>Date: <%= @item.created_at %></p>
+<p><a href="/items/<%= @item.id %>/edit">Edit</a></p>
+<p>
+  <form action="/items/<%= @item.id %>" method="post">
+	<input type="hidden" name="_method" value="delete">
+	<input type="submit" value="Delete">
+  </form>
+</p>

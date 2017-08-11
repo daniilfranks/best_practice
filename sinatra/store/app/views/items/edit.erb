@@ -1,0 +1,11 @@
+<h1>Edit item</h1>
+
+<form action="/items/<%= @item.id %>" method="post">
+  <input type="hidden" name="_method" value="patch">
+  <p>Title: <input type="text" name="title" value="<%= @item.title %>"></p>
+  <p>Description: <input type="text" name="description" value="<%= @item.description %>"></p>
+  <p>Price: <input type="text" name="price" value="<%= @item.price %>"></p>
+  <p>Count: <input type="number" name="count" value="<%= @item.count %>"></p>
+  <p>Image: <input type="text" name="image" value="<%= @item.image %>"></p>
+  <input type="submit" value="Edit item">
+</form>

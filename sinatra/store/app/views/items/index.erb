@@ -1,0 +1,22 @@
+<h1>All items</h1>
+
+<a href="/items/new">Create item</a><br>
+
+<% @items.each do |item| %>
+  <img src="<%= item.image %>" alt="<%= item.title %>" width="256" height="256">
+  <p>Id: <%= item.id %></p>
+  <p>Title: <%= item.title %></p>
+  <p>Description: <%= item.description %></p>
+  <p>Price: <%= item.price %></p>
+  <p>Count: <%= item.count %></p>
+  <p>Date: <%= item.created_at %></p>
+  <p><a href="/items/<%= item.id %>">Show</a></p>
+  <p><a href="/items/<%= item.id %>/edit">Edit</a></p>
+  <p>
+  	<form action="/items/<%= item.id %>" method="post">
+  	  <input type="hidden" name="_method" value="delete">
+  	  <input type="submit" value="Delete">
+    </form>
+  </p>
+  <br>
+<% end %>
