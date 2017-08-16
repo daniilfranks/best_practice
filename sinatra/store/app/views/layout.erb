@@ -8,6 +8,13 @@
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/items">Items</a></li>
+
+      <% if @cart %>
+        <% if @cart.empty? %>
+          <li><a href="/cart">You cart is empty.</a></li>
+        <% end %>
+      <% end %>
+      
     </ul>
     <%= yield %>
   </body>

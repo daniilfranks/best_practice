@@ -14,3 +14,11 @@
 	<input type="submit" value="Delete">
   </form>
 </p>
+
+<p>
+  <form action="/carts/<%= @item.id %>" method="post">
+	<input type="hidden" name="_method" value="patch">
+	<input type="submit" value="Add item">
+  </form>
+</p>
+

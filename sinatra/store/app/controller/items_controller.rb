@@ -1,4 +1,8 @@
 class ItemsController < ApplicationController
+  before do
+    initialize_cart
+  end
+
   # Create items
   get '/items/new' do
     erb :'items/new'
