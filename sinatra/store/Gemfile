@@ -8,6 +8,7 @@ gem 'rake'
 gem 'puma'
 gem 'require_all'
 gem 'pry'
+gem 'rack-flash3'
 
 group :test do
   gem 'rspec'

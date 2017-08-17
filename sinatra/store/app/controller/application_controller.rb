@@ -3,6 +3,7 @@ class ApplicationController < Sinatra::Base
   	set :views, 'app/views'
   	set :public_dir, 'public'
     enable :sessions
+    use Rack::Flash
   	use Rack::MethodOverride
   	include ApplicationHelper
   end

@@ -2,10 +2,10 @@
 
 <form action="/items/<%= @item.id %>" method="post">
   <input type="hidden" name="_method" value="patch">
-  <p>Title: <input type="text" name="title" value="<%= @item.title %>"></p>
-  <p>Description: <input type="text" name="description" value="<%= @item.description %>"></p>
-  <p>Price: <input type="text" name="price" value="<%= @item.price %>"></p>
-  <p>Count: <input type="number" name="count" value="<%= @item.count %>"></p>
-  <p>Image: <input type="text" name="image" value="<%= @item.image %>"></p>
+  <p>Title: <input type="text" name="items[title]" value="<%= @item.title %>"></p>
+  <p>Description: <input type="text" name="items[description]" value="<%= @item.description %>"></p>
+  <p>Price: <input type="text" name="items[price]" value="<%= @item.price %>"></p>
+  <p>Count: <input type="number" name="items[count]" value="<%= @item.count %>"></p>
+  <p>Image: <input type="text" name="items[image]" value="<%= @item.image %>"></p>
   <input type="submit" value="Edit item">
 </form>

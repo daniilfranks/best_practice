@@ -9,7 +9,7 @@ class ItemsController < ApplicationController
   end
 
   post '/items' do
-    @item = Item.new(params)
+    @item = Item.new(params[:items])
 
     if @item.save
       redirect "/items/#{@item.id}"
@@ -27,11 +27,11 @@ class ItemsController < ApplicationController
   patch '/items/:id' do
   	@item = Item.find(params[:id])
 
-    if @item.update(title: params[:title], 
-    	            description: params[:description],
-    	            price: params[:price],
-    	            count: params[:count],
-    	            image: params[:image]
+    if @item.update(title:       params[:items][:title], 
+    	              description: params[:items][:description],
+    	              price:       params[:items][:price],
+    	              count:       params[:items][:count],
+    	              image:       params[:items][:image]
     	           )
       redirect "/items/#{@item.id}"
     else

@@ -73,6 +73,8 @@ GEM
     public_suffix (2.0.5)
     puma (3.9.1)
     rack (2.0.3)
+    rack-flash3 (1.0.5)
+      rack
     rack-protection (2.0.0)
       rack
     rack-test (0.6.3)
@@ -136,6 +138,7 @@ DEPENDENCIES
   guard-rspec
   pry
   puma
+  rack-flash3
   rack-test
   rake
   require_all
@@ -146,4 +149,4 @@ DEPENDENCIES
   sqlite3
 
 BUNDLED WITH
-   1.15.1
+   1.15.3

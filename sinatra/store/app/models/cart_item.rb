@@ -10,7 +10,11 @@ class CartItem
     @quantity += 1
   end
 
-  def product
-    Product.find(product_id)
+  def items
+    Item.find(product_id)
+  end
+
+  def total_price
+    items.price * @quantity
   end
 end
