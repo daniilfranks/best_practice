@@ -14,7 +14,7 @@ class Cart
               []
             end
 
-            new items
+    new items
   end
 
   def add_item(product_id)
