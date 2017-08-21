@@ -15,9 +15,15 @@ class CartsController < ApplicationController
   end
 
   post '/cart/clear' do
-    @cart.clear_cart
     session['cart'] = nil
     flash[:notice] = 'Cart bin cleared!'
+    redirect '/cart'
+  end
+
+  delete '/cart/:id' do
+    session['cart']['books'].delete_if { |key, value| key['book_id'] == params[:id].to_i }
+
+    flash[:notice] = 'The book was successfully deleted to the cart!'
     redirect '/cart'
   end
 end

@@ -7,6 +7,10 @@
   <p>Price: <%= book.books.price %></p>
   <p>Quantity: <%= book.quantity %></p>
   <p>Total price: <%= book.total_price %></p>
+  <form action="/cart/<%= book.books.id %>" method="post">
+  	<input type="hidden" name="_method" value="delete">
+  	<input type="submit" value="Delete book">
+  </form>
 <% end %>
 
 <p>Total price: <%= @cart.total_price %></p>
