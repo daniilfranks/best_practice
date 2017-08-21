@@ -22,4 +22,12 @@ class Cart
   def clear_cart
     @books.clear
   end
+
+  def total_price
+    @books.inject(0) { |sum, book| sum + book.total_price }
+  end
+
+  def count
+    @books.count
+  end
 end

@@ -9,4 +9,8 @@ class BookCart
   def books
     Book.find(@book_id)
   end
+
+  def total_price
+    books.price * quantity
+  end
 end
