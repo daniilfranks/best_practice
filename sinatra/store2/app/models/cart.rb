@@ -26,14 +26,6 @@ class Cart
     end
   end
 
-  #def delete_book(book_id)
-  #  @books.delete_if { |book| book.book_id == book_id }
-  #end
-
-  #def clear_cart
-  #  @books.clear
-  #end
-
   def total_price
     price = @books.inject(0) { |sum, book| sum + book.total_price.to_f }
     sprintf("%.2f", price)

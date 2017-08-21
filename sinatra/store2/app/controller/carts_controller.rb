@@ -26,4 +26,18 @@ class CartsController < ApplicationController
     flash[:notice] = 'The book was successfully deleted to the cart!'
     redirect '/cart'
   end
+
+  patch '/cart/:id/increment' do
+    session['cart']['books'].find do |book| 
+                              book['quantity'] += 1 if book['book_id'] == params[:id].to_i
+                            end
+    redirect '/cart'
+  end
+
+  patch '/cart/:id/decrement' do
+    session['cart']['books'].find do |book| 
+                              book['quantity'] -= 1 if book['book_id'] == params[:id].to_i
+                            end
+    redirect '/cart'
+  end
 end
