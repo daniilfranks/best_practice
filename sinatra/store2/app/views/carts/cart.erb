@@ -1,2 +1,15 @@
 <h1>Cart</h1>
 
+<% @cart.books.each do |book| %>
+  <p>Id: <%= book.books.id %></p>
+  <p>Title: <%= book.books.title %></p>
+  <p>Count: <%= book.books.count %></p>
+  <p>Price: <%= book.books.price %></p>
+  <p>Quantity: <%= book.quantity %></p>
+  <p>Total price: <%= book.total_price %></p>
+<% end %>
+
+<p>Total price: <%= @cart.total_price %></p>
+<form action="/cart/clear" method="post">
+  <input type="submit" value="Clear cart">
+</form>

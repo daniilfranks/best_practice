@@ -16,6 +16,10 @@
   	</form>
   </p>
   <p>
-    
+    <form action="/cart" method="post">
+      <input type="hidden" name="cart[book_id]" value="<%= book.id %>">
+      <input type="number" name="cart[quantity]" value="1">
+      <input type="submit" value="Add to cart">
+    </form>
   </p>
 <% end %>

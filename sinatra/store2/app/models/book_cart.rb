@@ -11,6 +11,7 @@ class BookCart
   end
 
   def total_price
-    books.price * quantity
+    price = (books.price.to_f * quantity.to_i)
+    sprintf("%.2f", price)
   end
 end

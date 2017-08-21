@@ -1,4 +1,8 @@
 class BooksController < ApplicationController
+  before do
+    cart
+  end
+  
   # Create book
   get '/books/new' do
     erb :'books/new'
