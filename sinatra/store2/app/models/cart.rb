@@ -35,6 +35,10 @@ class Cart
     @books.count
   end
 
+  def delete
+    
+  end
+
   def serialize
   	books = @books.map do |book|
       {
