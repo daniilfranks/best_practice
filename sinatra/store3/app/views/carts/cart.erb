@@ -5,3 +5,7 @@
   <p>Price: <%= book.book.price %></p>
   <p>Quantity: <%= book.quantity %></p>
 <% end %>
+
+<form action="/cart/clear" method="post">
+  <input type="submit" value="Clear to cart">
+</form>
