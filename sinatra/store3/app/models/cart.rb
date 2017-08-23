@@ -11,4 +11,8 @@ class Cart < ActiveRecord::Base
     end
     book
   end
+
+  def total_price
+    book_carts.to_a.sum { |book| book.total_price }
+  end
 end

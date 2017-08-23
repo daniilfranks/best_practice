@@ -2,10 +2,12 @@
 
 <% @cart.book_carts.each do |book| %>
   <p>Title: <%= book.book.title %></p>
-  <p>Price: <%= book.book.price %></p>
+  <p>Price: <%= book.total_price %></p>
   <p>Quantity: <%= book.quantity %></p>
 <% end %>
 
 <form action="/cart/clear" method="post">
   <input type="submit" value="Clear to cart">
 </form>
+
+<p>Total price: <%= @cart.total_price %></p>
