@@ -1,0 +1,33 @@
+<h1>Cart</h1>
+
+<% @cart.cart_books.each do |book| %>
+  <p>Title: <%= book.book.title %></p>
+  <p>Quantity: <%= book.quantity %></p>
+  <p>Price: <%= book.total_price %></p>
+  <p>
+  	<form action="/cart/<%= book.book.id %>/increment" method="post">
+  	  <input type="hidden" name="_method" value="patch">
+  	  <input type="submit" value="+">
+  	</form>
+  </p>
+  <p>
+  	<form action="/cart/<%= book.book.id %>/decrement" method="post">
+  	  <input type="hidden" name="_method" value="patch">
+  	  <input type="submit" value="-">
+  	</form>
+  </p>
+  <p><a href="/books/<%= book.book.id %>">Show</a></p>
+  <p>
+  	<form action="/cart/<%= book.book.id %>" method="post">
+  	  <input type="hidden" name="_method" value="delete">
+  	  <input type="submit" value="Delete">
+  	</form>
+  </p>
+<% end %>
+
+<p>Total price: <%= @cart.total_price %></p>
+
+<form action="/cart/clear" method="post">
+  <input type="hidden" name="_method" value="delete">
+  <input type="submit" value="Clear cart">
+</form>
