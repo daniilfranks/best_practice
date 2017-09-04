@@ -1,0 +1,20 @@
+require_relative 'config/environment.rb'
+require 'sinatra/activerecord/rake'
+
+task :console do
+  Pry.start
+end
+
+# https://github.com/janko-m/sinatra-activerecord
+# rake db:create_migration NAME=create_users
+# rake db:create_migration NAME=add_timestamps
+# rake db:migrate
+
+# rake db:seed
+# rake console
+
+# cart.find(1)
+# cart.cart_books.each { |book| p book.book.title }
+
+# sidekiq -r ./app/workers/email_worker.rb
+# rackup -p 3000
