@@ -17,4 +17,12 @@ end
 # cart.cart_books.each { |book| p book.book.title }
 
 # sidekiq -r ./app/workers/email_worker.rb
+# pry -r ./app/workers/email_worker.rb
+# EmailWorker.perform_async('Test', 'babanovs5@gmail.com', 1)
+
+# sidekiq -r ./app/workers/email_worker.rb
 # rackup -p 3000
+
+# echo "export SENDGRID_API_KEY='YOUR_API_KEY'" > sendgrid.env
+# echo "sendgrid.env" >> .gitignore
+# source ./sendgrid.env

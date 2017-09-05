@@ -9,6 +9,7 @@ class BooksController < ApplicationController
 
     if @book.save
       EmailWorker.perform_async(@book.title, @book.email, @book.price)
+      #SmsWorker.perform_async(@book.title, @book.email, @book.price)
 
       flash[:notice] = 'Book successfully create!'
       redirect "/books/#{@book.id}"

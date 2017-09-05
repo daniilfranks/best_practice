@@ -4,13 +4,20 @@ require 'bundler'
 Bundler.require(:default, ENV["SINATRA_ENV"])
 require 'sinatra/activerecord'
 require 'rack-flash'
-require 'sendgrid-ruby'
 require 'sidekiq'
 require 'sidekiq/web'
+require 'sidekiq'
+require 'sendgrid-ruby'
+require 'net/http'
+require 'uri'
 
 include SendGrid
 
 Sidekiq.configure_client do |config|
+  config.redis = { :host => "127.0.0.1", :port => 6379, :db => 15, :password => 12345 }
+end
+
+Sidekiq.configure_server do |config|
   config.redis = { :host => "127.0.0.1", :port => 6379, :db => 15, :password => 12345 }
 end
 
