@@ -23,6 +23,9 @@ end
 # sidekiq -r ./app/workers/email_worker.rb
 # rackup -p 3000
 
+# sidekiq -r ./sidekiq_server.rb
+# rackup -p 3000
+
 # echo "export SENDGRID_API_KEY='YOUR_API_KEY'" > sendgrid.env
 # echo "sendgrid.env" >> .gitignore
 # source ./sendgrid.env
