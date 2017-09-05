@@ -25,11 +25,11 @@ class ApplicationController < Sinatra::Base
     set :show_exceptions, false
   end
 
-  not_found do
-    erb :'404'
-  end
+  #not_found do
+  #  erb :'404'
+  #end
 
-  error do
-    erb :'error'
-  end
+  #error do
+  #  erb :'error'
+  #end
 end

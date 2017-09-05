@@ -15,7 +15,6 @@ class EmailWorker
   sidekiq_options retry: 0
 
   def perform(title, email, price)
-  	sleep 30
     from = Email.new(email: 'admin@danilababanov.ovh')
 	to = Email.new(email: email)
 	subject = title

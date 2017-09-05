@@ -31,3 +31,8 @@ HardWorker.perform_async('Jok', 15)
 # HardWorker.perform_async('Den', 5)
 # HardWorker.perform_async('Den', 6)
 # HardWorker.perform_async('Den', 7)
+
+# ps ax|grep sidekiq
+# kill -TTIN 15392
+# kill -USRI 15392
+# kill -TERM 15392
