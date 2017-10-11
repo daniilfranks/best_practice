@@ -1,0 +1,10 @@
+require './config/environments'
+require 'bundler/setup'
+require 'rake/testtask'
+load 'tasks/otr-activerecord.rake'
+
+task :console do
+  Pry.start
+end
+
+# rake db:create_migration[create_posts]
