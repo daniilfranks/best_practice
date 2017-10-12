@@ -1,4 +1,4 @@
 require './config/environments'
 
 use OTR::ActiveRecord::ConnectionManagement
-run API::App
+run API::Root
