@@ -38,6 +38,8 @@ GEM
       i18n
       rabl
       tilt
+    grape-swagger (0.27.3)
+      grape (>= 0.16.2)
     hashie (3.5.6)
     hashie-forbidden_attributes (0.1.1)
       hashie (>= 3.0)
@@ -55,11 +57,13 @@ GEM
       coderay (~> 1.1.0)
       method_source (~> 0.8.1)
       slop (~> 3.4)
+    puma (3.10.0)
     rabl (0.13.1)
       activesupport (>= 2.3.14)
     rack (2.0.3)
     rack-accept (0.4.5)
       rack (>= 0.4)
+    rack-cors (1.0.1)
     rake (12.1.0)
     require_all (1.4.0)
     slop (3.6.0)
@@ -82,8 +86,11 @@ DEPENDENCIES
   dotenv
   grape
   grape-rabl
+  grape-swagger
   otr-activerecord
   pry
+  puma
+  rack-cors
   rake
   require_all
   sqlite3
