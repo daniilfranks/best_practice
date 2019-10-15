@@ -12,4 +12,8 @@ class EmailWorker
     sg = SendGrid::API.new(api_key: ENV['SENDGRID_API_KEY'])
     sg.client.mail._('send').post(request_body: mail.to_json)
   end
+
+  def on_status(status, book_id)
+    
+  end
 end

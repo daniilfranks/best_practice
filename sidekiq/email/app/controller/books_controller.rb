@@ -8,7 +8,7 @@ class BooksController < ApplicationController
     @book = Book.new(params[:book])
 
     if @book.save
-      EmailWorker.perform_async(@book.title, @book.email, @book.price)
+      EmailWorker.perform_async(@book.title, @book.email, @book.price, @book.id)
       #SmsWorker.perform_async(@book.title, @book.email, @book.price)
 
       flash[:notice] = 'Book successfully create!'

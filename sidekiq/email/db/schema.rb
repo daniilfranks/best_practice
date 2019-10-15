@@ -16,6 +16,7 @@ ActiveRecord::Schema.define(version: 20170817105750) do
     t.string "title"
     t.string "email"
     t.float "price"
+    t.string "status", default: "f"
   end
 
 end

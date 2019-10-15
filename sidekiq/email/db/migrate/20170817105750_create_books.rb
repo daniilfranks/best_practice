@@ -4,6 +4,7 @@ class CreateBooks < ActiveRecord::Migration[5.1]
       t.string :title
       t.string :email
       t.float :price
+      t.string :status, default: false
   	end
   end
 end
